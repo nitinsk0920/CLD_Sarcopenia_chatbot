@@ -70,6 +70,12 @@ export default function FreeTextQAPage({
       if (audioElementRef.current) {
         audioElementRef.current.pause();
       }
+      audioCacheRef.current.forEach((url) => {
+        if (typeof url === "string" && url.startsWith("blob:")) {
+          URL.revokeObjectURL(url);
+        }
+      });
+      audioCacheRef.current.clear();
     };
   }, []);
 
@@ -214,9 +220,15 @@ export default function FreeTextQAPage({
           },
           fallbackMessage: t("freeQA.audioFailed"),
         });
-        audioUrl = data.audio_url.startsWith("http")
+        const protectedAudioUrl = data.audio_url.startsWith("http")
           ? data.audio_url
           : `${API_BASE_URL}${data.audio_url}`;
+        const audioBlob = await apiFetch(protectedAudioUrl, {
+          method: "GET",
+          responseType: "blob",
+          fallbackMessage: t("freeQA.audioFailed"),
+        });
+        audioUrl = URL.createObjectURL(audioBlob);
         audioCacheRef.current.set(message.answerId, audioUrl);
       }
 
