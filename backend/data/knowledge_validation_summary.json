@@ -1,0 +1,31 @@
+{
+  "total_entries": 44,
+  "missing_topic_count": 0,
+  "missing_content_count": 0,
+  "raw_topics": {
+    "cld_basics": 4,
+    "sarcopenia_basics": 6,
+    "nutrition": 14,
+    "exercise": 7,
+    "safety": 3,
+    "faq": 10
+  },
+  "normalized_topic_counts": {
+    "cld": 4,
+    "sarcopenia": 6,
+    "diet": 14,
+    "exercise": 7,
+    "safety": 3,
+    "faq": 10
+  },
+  "required_topics_present": [
+    "cld",
+    "diet",
+    "exercise",
+    "faq",
+    "safety",
+    "sarcopenia"
+  ],
+  "required_topics_missing": [],
+  "is_valid": true
+}

@@ -1,0 +1,289 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  body {
+    @apply m-0 min-h-screen bg-gradient-to-b from-hospital-50 via-slate-50 to-hospital-100 text-hospital-900 antialiased;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+}
+
+@layer components {
+  .welcome-shell {
+    @apply flex min-h-screen items-center justify-center px-4 py-6 sm:px-6 lg:px-10;
+  }
+
+  .welcome-card {
+    @apply flex min-h-[86vh] w-full max-w-5xl flex-col gap-6 rounded-3xl border border-hospital-200 bg-white/95 p-6 shadow-soft backdrop-blur sm:p-8 lg:p-10;
+  }
+
+  .welcome-content {
+    @apply my-auto grid gap-5 text-center;
+  }
+
+  .welcome-badge {
+    @apply mx-auto inline-flex rounded-full border border-hospital-200 bg-hospital-100 px-4 py-1.5 text-sm font-semibold text-hospital-700;
+  }
+
+  .welcome-content h1 {
+    @apply m-0 text-3xl font-bold leading-tight text-hospital-900 sm:text-4xl lg:text-5xl;
+  }
+
+  .welcome-subtitle {
+    @apply m-0 text-base leading-relaxed text-hospital-700 sm:text-lg lg:text-xl;
+  }
+
+  .welcome-cta {
+    @apply mt-auto min-h-[60px] text-lg font-semibold;
+  }
+
+  .app-shell {
+    @apply mx-auto grid min-h-screen w-full max-w-6xl grid-rows-[auto_1fr_auto] gap-4 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8;
+  }
+
+  .app-header {
+    @apply rounded-2xl border border-hospital-200 bg-white px-5 py-5 shadow-soft sm:px-6 sm:py-6;
+  }
+
+  .app-header h1 {
+    @apply m-0 text-2xl font-bold tracking-tight text-hospital-900 sm:text-3xl;
+  }
+
+  .app-header p {
+    @apply mt-2 text-base leading-relaxed text-hospital-700 sm:text-lg;
+  }
+
+  .card {
+    @apply rounded-2xl border border-hospital-200 bg-white p-5 shadow-soft sm:p-6 lg:p-7;
+  }
+
+  .stack {
+    @apply grid gap-4;
+  }
+
+  .form-grid {
+    @apply gap-5;
+  }
+
+  .form-section-grid {
+    @apply grid gap-4 lg:grid-cols-2;
+  }
+
+  .form-section-grid-3 {
+    @apply grid gap-4 xl:grid-cols-3;
+  }
+
+  .form-panel {
+    @apply rounded-2xl border border-hospital-200 bg-hospital-50/70 p-4;
+  }
+
+  .form-panel-wide {
+    @apply lg:col-span-2;
+  }
+
+  .stack-sm {
+    @apply grid gap-3;
+  }
+
+  .info-box {
+    @apply m-0 rounded-xl border border-hospital-200 bg-hospital-50 px-4 py-3 text-sm leading-relaxed text-hospital-700 sm:text-base;
+  }
+
+  .field {
+    @apply m-0 grid gap-2 border-0 p-0;
+  }
+
+  fieldset.field {
+    @apply min-w-0;
+  }
+
+  .field span {
+    @apply text-sm font-semibold text-hospital-900 sm:text-base;
+  }
+
+  .field input,
+  .field textarea,
+  .field select {
+    @apply w-full rounded-xl border border-hospital-300 bg-white px-4 py-3 text-base text-hospital-900 shadow-sm transition-[border-color,box-shadow,transform] duration-200 placeholder:text-hospital-400 focus:border-care-500 focus:outline-none focus:ring-2 focus:ring-care-200;
+  }
+
+  .field textarea {
+    @apply resize-y;
+  }
+
+  .choice-grid {
+    @apply grid gap-3;
+  }
+
+  .choice-grid-columns {
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+  }
+
+  .choice-grid-two {
+    @apply grid-cols-1 sm:grid-cols-2;
+  }
+
+  .choice-grid-three {
+    @apply grid-cols-1 sm:grid-cols-2 xl:grid-cols-3;
+  }
+
+  .choice-grid-four {
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-4;
+  }
+
+  .choice-item {
+    @apply flex min-h-12 items-center gap-3 rounded-xl border border-hospital-200 bg-white px-3.5 py-3 text-base text-hospital-800 shadow-sm transition-[border-color,background-color,transform] duration-200 hover:border-hospital-300 hover:bg-hospital-50;
+  }
+
+  .choice-item input {
+    @apply m-0 h-4 w-4 accent-care-600;
+  }
+
+  .error-text {
+    @apply text-sm font-medium text-red-600;
+  }
+
+  .btn {
+    @apply inline-flex min-h-12 w-auto items-center justify-center rounded-xl border px-5 py-3 text-base font-semibold no-underline transition-[background-color,border-color,color,transform,box-shadow] duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-block {
+    @apply w-full;
+  }
+
+  .btn-primary {
+    @apply border-care-700 bg-care-600 text-white shadow-sm hover:bg-care-700 focus:ring-care-400;
+  }
+
+  .btn-secondary {
+    @apply border-hospital-300 bg-white text-hospital-800 hover:bg-hospital-50 focus:ring-hospital-300;
+  }
+
+  .nav-row {
+    @apply flex items-center justify-between gap-3 pb-1;
+  }
+
+  .question-card {
+    @apply rounded-2xl border border-hospital-200 bg-white p-4 shadow-sm sm:p-5;
+  }
+
+  .question-title {
+    @apply mb-2 text-lg font-semibold text-hospital-900 sm:text-xl;
+  }
+
+  .option {
+    @apply flex items-start gap-3 rounded-xl border border-hospital-200 bg-white p-3 text-base text-hospital-800 shadow-sm transition-[border-color,background-color,transform] duration-200 hover:border-hospital-300 hover:bg-hospital-50;
+  }
+
+  .option-selected {
+    @apply border-care-300 bg-care-50;
+  }
+
+  .option input {
+    @apply mt-1 h-4 w-4 accent-care-600;
+  }
+
+  .chat-box {
+    @apply grid max-h-[430px] gap-3 overflow-y-auto rounded-2xl border border-hospital-200 bg-hospital-50/70 p-3 sm:p-4;
+  }
+
+  .bubble {
+    @apply max-w-[92%] rounded-2xl px-4 py-3 text-base leading-relaxed shadow-sm sm:max-w-[88%];
+  }
+
+  .bubble-user {
+    @apply justify-self-end border border-hospital-100 bg-hospital-100;
+  }
+
+  .bubble-bot {
+    @apply justify-self-start border border-hospital-200 bg-white;
+  }
+
+  .bubble-rich {
+    @apply grid gap-3;
+  }
+
+  .bubble-text {
+    @apply m-0 text-base leading-relaxed text-hospital-900;
+  }
+
+  .answer-actions {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .btn-audio {
+    @apply min-h-10 px-4 py-2 text-sm;
+  }
+
+  .topic-chip {
+    @apply inline-flex h-8 items-center rounded-full border border-hospital-300 bg-hospital-100 px-3 text-xs font-semibold uppercase tracking-wide text-hospital-700;
+  }
+
+  .answer-image {
+    @apply h-auto max-h-72 w-full rounded-xl border border-hospital-200 object-cover shadow-sm sm:max-w-md;
+  }
+
+  .chip-row {
+    @apply flex flex-wrap gap-2.5;
+  }
+
+  .grid-2 {
+    @apply grid gap-3 md:grid-cols-2;
+  }
+
+  .visual-card {
+    @apply rounded-2xl border border-hospital-200 bg-white p-4 shadow-sm;
+  }
+
+  .visual-icon {
+    @apply mb-2 grid h-9 w-9 place-items-center rounded-lg bg-care-100 font-bold text-care-700;
+  }
+
+  .muted {
+    @apply m-0 text-sm text-hospital-600 sm:text-base;
+  }
+
+  .simple-list {
+    @apply m-0 list-disc space-y-1 pl-5 text-hospital-800;
+  }
+
+  .admin-grid {
+    @apply grid gap-4 lg:grid-cols-3;
+  }
+
+  .admin-stat {
+    @apply rounded-2xl border border-hospital-200 bg-white p-5 shadow-sm;
+  }
+
+  .admin-stat-label {
+    @apply text-sm font-semibold uppercase tracking-wide text-hospital-600;
+  }
+
+  .admin-stat-value {
+    @apply mt-2 text-3xl font-bold text-hospital-900;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@media (max-width: 760px) {
+  .welcome-card {
+    @apply min-h-[90vh] rounded-2xl;
+  }
+
+  .welcome-content {
+    @apply text-left;
+  }
+}

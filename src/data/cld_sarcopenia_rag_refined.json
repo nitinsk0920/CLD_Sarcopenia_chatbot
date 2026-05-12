@@ -1,0 +1,290 @@
+{
+  "title": "CLD and Sarcopenia RAG Knowledge Base - Refined",
+  "description": "Refined RAG-ready knowledge base for CLD and sarcopenia patient education. Contains medical knowledge chunks, practical diet and exercise guidance, and FAQ pairs. System instructions and chatbot prompts are intentionally excluded.",
+  "chunks": [
+    {
+      "topic": "cld_basics",
+      "subtopic": "definition",
+      "content": "Chronic liver disease (CLD) means long-term liver damage that develops over time and can affect how the liver works.",
+      "source": "QUESTIONNAIRES.docx"
+    },
+    {
+      "topic": "cld_basics",
+      "subtopic": "liver_functions",
+      "content": "The liver helps process nutrients, remove toxins, and support digestion. When the liver is not working well, the body may lose energy and strength more easily.",
+      "source": "QUESTIONNAIRES.docx; NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "cld_basics",
+      "subtopic": "follow_up",
+      "content": "People with CLD usually need regular follow-up because the condition can affect nutrition, strength, and daily functioning, and may lead to complications over time.",
+      "source": "QUESTIONNAIRES.docx"
+    },
+    {
+      "topic": "cld_basics",
+      "subtopic": "complication_awareness",
+      "content": "Weakness, poor appetite, fluid retention, and muscle loss can happen in liver disease, so patients should stay in touch with the clinical team if symptoms change.",
+      "source": "QUESTIONNAIRES.docx; NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "sarcopenia_basics",
+      "subtopic": "definition",
+      "content": "Sarcopenia is the loss of muscle mass and muscle strength. It can make a person feel weak, tired, and less able to do daily activities.",
+      "source": "QUESTIONNAIRES.docx"
+    },
+    {
+      "topic": "sarcopenia_basics",
+      "subtopic": "cld_link",
+      "content": "People with liver disease can develop sarcopenia because illness, poor intake, and altered metabolism can reduce muscle mass and strength.",
+      "source": "QUESTIONNAIRES.docx; AASLD guidance"
+    },
+    {
+      "topic": "sarcopenia_basics",
+      "subtopic": "why_it_matters",
+      "content": "Sarcopenia matters because it can affect balance, movement, daily function, and overall quality of life.",
+      "source": "QUESTIONNAIRES.docx; AASLD guidance"
+    },
+    {
+      "topic": "sarcopenia_basics",
+      "subtopic": "common_signs",
+      "content": "Common signs include muscle weakness, low stamina, tiredness, and difficulty doing normal physical tasks.",
+      "source": "QUESTIONNAIRES.docx"
+    },
+    {
+      "topic": "sarcopenia_basics",
+      "subtopic": "monitoring",
+      "content": "In cirrhosis, clinicians may monitor frailty or sarcopenia over time so nutrition and activity support can be adjusted if needed.",
+      "source": "AASLD guidance"
+    },
+    {
+      "topic": "sarcopenia_basics",
+      "subtopic": "prognosis",
+      "content": "Sarcopenia is an important clinical problem in liver disease because it can be linked with worse outcomes, so early recognition is useful.",
+      "source": "AASLD guidance"
+    },
+    {
+      "topic": "nutrition",
+      "subtopic": "energy_and_protein_need",
+      "content": "Many people with liver disease need enough energy and protein to help prevent weight loss and muscle wasting. Balanced meals are important.",
+      "source": "QUESTIONNAIRES.docx; NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "nutrition",
+      "subtopic": "protein_role",
+      "content": "Protein helps build and repair muscles. In liver disease, protein is often important for preventing further muscle loss.",
+      "source": "QUESTIONNAIRES.docx; NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "nutrition",
+      "subtopic": "protein_not_routinely_restricted",
+      "content": "Protein is not routinely avoided in cirrhosis just because the liver is sick. For many patients, avoiding protein can make muscle loss worse. Protein advice should be individualized by the clinical team.",
+      "source": "AASLD guidance; NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "nutrition",
+      "subtopic": "protein_distribution",
+      "content": "Spreading protein across the day can help the body use it better. A source of protein with meals and snacks is often helpful.",
+      "source": "NHS liver disease diet leaflets; CUH patient leaflet"
+    },
+    {
+      "topic": "nutrition",
+      "subtopic": "protein_amount_guidance",
+      "content": "For some patients with cirrhosis, guidance may suggest around 1.2 to 1.5 g of protein per kilogram of body weight per day, but the treating team should decide the best target for the individual patient.",
+      "source": "AASLD guidance; NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "nutrition",
+      "subtopic": "protein_sources",
+      "content": "Helpful protein foods can include eggs, dal, pulses, milk, yogurt, paneer, tofu, fish, chicken, and other local protein foods the patient can tolerate and afford.",
+      "source": "QUESTIONNAIRES.docx; NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "nutrition",
+      "subtopic": "dal_example",
+      "content": "Dal is a useful protein food for many patients. It can be part of a balanced meal when eaten as advised.",
+      "source": "QUESTIONNAIRES.docx; NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "nutrition",
+      "subtopic": "regular_meals",
+      "content": "Eating regular meals and snacks can help stop the body from breaking down its own muscle for energy.",
+      "source": "NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "nutrition",
+      "subtopic": "small_frequent_meals",
+      "content": "Small, evenly spaced meals through the day can help reduce muscle breakdown and support energy levels.",
+      "source": "QUESTIONNAIRES.docx; AASLD guidance; NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "nutrition",
+      "subtopic": "bedtime_snack",
+      "content": "A late-night or bedtime snack can be useful because it may help reduce overnight muscle breakdown.",
+      "source": "QUESTIONNAIRES.docx; AASLD guidance"
+    },
+    {
+      "topic": "nutrition",
+      "subtopic": "carbohydrates",
+      "content": "Regular carbohydrate intake, including through the day and at bedtime, can help provide energy and support muscle preservation.",
+      "source": "NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "nutrition",
+      "subtopic": "salt_restriction",
+      "content": "Salt restriction may be recommended mainly when fluid retention, swelling, or ascites is present. The exact diet plan should come from the clinical team.",
+      "source": "QUESTIONNAIRES.docx; NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "nutrition",
+      "subtopic": "avoid_skipping_meals",
+      "content": "Skipping meals or following extreme fasting can worsen weakness and muscle loss. A regular, balanced eating pattern is safer for many patients.",
+      "source": "QUESTIONNAIRES.docx; NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "nutrition",
+      "subtopic": "poor_appetite_support",
+      "content": "If appetite is poor, dietitian support or nutritional supplements may be needed in some patients to help maintain intake.",
+      "source": "NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "exercise",
+      "subtopic": "recommended_level",
+      "content": "Exercise for patients with sarcopenia should usually be light to moderate and regular, rather than sudden or extreme.",
+      "source": "QUESTIONNAIRES.docx"
+    },
+    {
+      "topic": "exercise",
+      "subtopic": "walking",
+      "content": "Walking is a useful activity because it can improve endurance and help maintain muscle function.",
+      "source": "QUESTIONNAIRES.docx"
+    },
+    {
+      "topic": "exercise",
+      "subtopic": "resistance_training",
+      "content": "Resistance exercise can help improve muscle strength when done safely and with proper guidance.",
+      "source": "QUESTIONNAIRES.docx; AASLD guidance"
+    },
+    {
+      "topic": "exercise",
+      "subtopic": "rest_activity_balance",
+      "content": "A balance between rest and activity is helpful because too little activity can worsen weakness, while too much can cause fatigue.",
+      "source": "QUESTIONNAIRES.docx"
+    },
+    {
+      "topic": "exercise",
+      "subtopic": "safety",
+      "content": "If the patient feels dizzy, unwell, or unsafe during exercise, they should stop and seek guidance from the nurse or doctor.",
+      "source": "QUESTIONNAIRES.docx"
+    },
+    {
+      "topic": "exercise",
+      "subtopic": "avoid_heavy_start",
+      "content": "Sudden heavy exercise is not a good starting point for many weak or frail patients. Exercise should be introduced gradually and safely.",
+      "source": "QUESTIONNAIRES.docx; AASLD guidance"
+    },
+    {
+      "topic": "exercise",
+      "subtopic": "multidisciplinary_support",
+      "content": "If weakness is significant, the best support may include a doctor, dietitian, physiotherapist, and other team members working together.",
+      "source": "AASLD guidance"
+    },
+    {
+      "topic": "safety",
+      "subtopic": "when_to_seek_help",
+      "content": "Patients should ask for medical guidance if weakness worsens, appetite falls, exercise feels unsafe, or symptoms change suddenly.",
+      "source": "QUESTIONNAIRES.docx"
+    },
+    {
+      "topic": "safety",
+      "subtopic": "education_only",
+      "content": "This chatbot is for education and support. It should not be used to make diagnosis or medicine changes.",
+      "source": "QUESTIONNAIRES.docx"
+    },
+    {
+      "topic": "safety",
+      "subtopic": "patient_specific_plan",
+      "content": "Diet and exercise advice should be adjusted to the individual patient by the clinical team, especially if there are complications or other illnesses.",
+      "source": "AASLD guidance; NHS liver disease diet leaflets"
+    },
+    {
+      "topic": "faq",
+      "subtopic": "what_is_cld",
+      "question": "What is chronic liver disease?",
+      "answer": "Chronic liver disease is long-term liver damage that develops over time.",
+      "source": "QUESTIONNAIRES.docx",
+      "content": "Q: What is chronic liver disease?\nA: Chronic liver disease is long-term liver damage that develops over time."
+    },
+    {
+      "topic": "faq",
+      "subtopic": "what_is_sarcopenia",
+      "question": "What is sarcopenia?",
+      "answer": "Sarcopenia is the loss of muscle mass and muscle strength.",
+      "source": "QUESTIONNAIRES.docx",
+      "content": "Q: What is sarcopenia?\nA: Sarcopenia is the loss of muscle mass and muscle strength."
+    },
+    {
+      "topic": "faq",
+      "subtopic": "why_protein",
+      "question": "Why is protein important?",
+      "answer": "Protein helps build and repair muscles and can help reduce further muscle loss.",
+      "source": "QUESTIONNAIRES.docx; NHS liver disease diet leaflets",
+      "content": "Q: Why is protein important?\nA: Protein helps build and repair muscles and can help reduce further muscle loss."
+    },
+    {
+      "topic": "faq",
+      "subtopic": "can_i_eat_eggs_or_dal",
+      "question": "Can I eat eggs or dal?",
+      "answer": "Eggs and dal are good protein foods for many patients when taken as advised by the clinical team.",
+      "source": "QUESTIONNAIRES.docx; NHS liver disease diet leaflets",
+      "content": "Q: Can I eat eggs or dal?\nA: Eggs and dal are good protein foods for many patients when taken as advised by the clinical team."
+    },
+    {
+      "topic": "faq",
+      "subtopic": "is_walking_safe",
+      "question": "Is walking safe?",
+      "answer": "Walking is usually a useful light-to-moderate activity, but patients should follow nurse or doctor advice if they feel unwell.",
+      "source": "QUESTIONNAIRES.docx",
+      "content": "Q: Is walking safe?\nA: Walking is usually a useful light-to-moderate activity, but patients should follow nurse or doctor advice if they feel unwell."
+    },
+    {
+      "topic": "faq",
+      "subtopic": "what_to_do_if_dizzy",
+      "question": "What should I do if I feel dizzy during exercise?",
+      "answer": "Stop the activity and inform the nurse or doctor.",
+      "source": "QUESTIONNAIRES.docx",
+      "content": "Q: What should I do if I feel dizzy during exercise?\nA: Stop the activity and inform the nurse or doctor."
+    },
+    {
+      "topic": "faq",
+      "subtopic": "can_sarcopenia_improve",
+      "question": "Can sarcopenia improve?",
+      "answer": "Yes, strength and function can improve with early support, including proper diet, exercise, and education.",
+      "source": "QUESTIONNAIRES.docx; AASLD guidance",
+      "content": "Q: Can sarcopenia improve?\nA: Yes, strength and function can improve with early support, including proper diet, exercise, and education."
+    },
+    {
+      "topic": "faq",
+      "subtopic": "should_i_skip_protein",
+      "question": "Should I avoid protein because of liver disease?",
+      "answer": "No, protein is often important in liver disease. Protein advice should be personalized by the clinical team.",
+      "source": "AASLD guidance; NHS liver disease diet leaflets",
+      "content": "Q: Should I avoid protein because of liver disease?\nA: No, protein is often important in liver disease. Protein advice should be personalized by the clinical team."
+    },
+    {
+      "topic": "faq",
+      "subtopic": "should_i_eat_small_meals",
+      "question": "Should I eat small meals?",
+      "answer": "Small, regular meals and a bedtime snack may help reduce muscle breakdown and support energy levels.",
+      "source": "QUESTIONNAIRES.docx; AASLD guidance; NHS liver disease diet leaflets",
+      "content": "Q: Should I eat small meals?\nA: Small, regular meals and a bedtime snack may help reduce muscle breakdown and support energy levels."
+    },
+    {
+      "topic": "faq",
+      "subtopic": "what_if_appetite_poor",
+      "question": "What if my appetite is poor?",
+      "answer": "If appetite is poor, tell the nurse or dietitian because extra support or nutritional supplements may be needed.",
+      "source": "NHS liver disease diet leaflets",
+      "content": "Q: What if my appetite is poor?\nA: If appetite is poor, tell the nurse or dietitian because extra support or nutritional supplements may be needed."
+    }
+  ]
+}
