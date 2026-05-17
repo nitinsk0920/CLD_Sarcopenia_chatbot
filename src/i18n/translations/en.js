@@ -222,6 +222,8 @@ const en = {
       hideLearnMore: "Hide Learn More",
       playAudio: "Play Audio",
       playingAudio: "Playing...",
+      loadingAudio: "Loading audio...",
+      audioUnavailable: "Audio unavailable",
       reminder:
         "Education reminder: this course is for learning support only. It does not give diagnosis and does not replace your nurse or doctor.",
       noVisual: "Visual support for this module can be added here.",
