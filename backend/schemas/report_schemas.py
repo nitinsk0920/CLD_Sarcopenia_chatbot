@@ -10,14 +10,33 @@ from pydantic import Field
 class PatientProfilePayload(BaseModel):
     patientId: str
     age: int | None = None
+    ageGroup: str | None = None
     gender: str | None = None
+    maritalStatus: str | None = None
     educationalQualification: str | None = None
     occupation: str | None = None
+    familyType: str | None = None
+    residence: str | None = None
+    religion: str | None = None
+    socioeconomicStatus: str | None = None
     dietType: str | None = None
     habits: list[str] = Field(default_factory=list)
     languagePreference: str | None = None
     digitalLiteracy: str | None = None
     cldStatus: str | None = None
+    cldDuration: str | None = None
+    cldEtiology: str | None = None
+    cldEtiologyOther: str | None = None
+    cldStage: str | None = None
+    cldStageOther: str | None = None
+    comorbidities: list[str] = Field(default_factory=list)
+    comorbiditiesOther: str | None = None
+    sarcopeniaDuration: str | None = None
+    cldTreatment: str | None = None
+    cldTreatmentOther: str | None = None
+    hospitalizationHistory: str | None = None
+    nutritionalCounselling: str | None = None
+    previousHealthEducation: str | None = None
     illnessDuration: str | None = None
     weaknessFatigue: str | None = None
     recentWeightLoss: str | None = None
@@ -71,7 +90,6 @@ class FinalReportSaveRequest(BaseModel):
     patient: PatientProfilePayload
     pre_test: QuizAttemptPayload
     post_test: QuizAttemptPayload
-    short_chat_summary: str = ""
     learning_summary: str = ""
     completion_status: str = "completed"
     doctor_note: str | None = None
@@ -81,6 +99,12 @@ class SessionStartResponse(BaseModel):
     session_id: str
     patient_id: str
     status: str
+
+
+class SessionResumeResponse(BaseModel):
+    session_id: str
+    started_at: datetime | None = None
+    patient: dict[str, Any]
 
 
 class SessionEndResponse(BaseModel):

@@ -61,7 +61,6 @@ export function buildFinalReportPayload({
   postTestSummary,
   preTestAnswers,
   postTestAnswers,
-  shortChatSummary,
 }) {
   const preQuestionBank = getPreTestQuestionBank("en");
   const postQuestionBank = getPostTestQuestionBank("en");
@@ -83,7 +82,6 @@ export function buildFinalReportPayload({
       postTestAnswers,
       postQuestionBank
     ),
-    short_chat_summary: shortChatSummary || "",
     learning_summary: "",
     completion_status: "completed",
     doctor_note: "",

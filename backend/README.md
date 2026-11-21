@@ -33,9 +33,9 @@ python prepare_knowledge.py
 
 ## RAG retrieval layer (local)
 
-The demo retriever uses:
+The retriever uses:
 
-- local hashed embeddings (deterministic, lightweight)
+- Google Gemini Embedding 2 (768 dimensions; API key remains on the backend)
 - local vector store (`FAISS`, persistent on disk)
 - FAQ-first shortcut before vector retrieval
 
@@ -52,6 +52,8 @@ pip install -r requirements-rag.txt
 cd "C:\Users\Asus\Documents\New project\backend"
 python build_rag_index.py
 ```
+
+Set `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) before building. This is an offline/manual operation; backend startup only loads and validates the prebuilt index. Configure `GEMINI_EMBEDDING_MODEL=gemini-embedding-2` and `GEMINI_EMBEDDING_DIMENSION=768` consistently in local and Render environments. The index and metadata must be committed together after rebuilding.
 
 ### Demo retrieval call
 
@@ -116,12 +118,19 @@ Required / optional environment knobs:
 - `GEMINI_MODEL` (default `gemini-2.5-flash`)
 - `GEMINI_TTS_MODEL` (default `gemini-2.5-flash-preview-tts`)
 - `LANGGRAPH_POSTGRES_URL` for production persistence
+- `ALLOW_IN_MEMORY_CHECKPOINTER_FALLBACK=false` to fail startup instead of silently losing conversation state when PostgreSQL is unavailable
 - `CHAT_TIMEOUT_SECONDS` (default `60`)
 - `GEMINI_TTS_VOICE` (default `Kore`)
+- `CHAT_MAX_INPUT_CHARS` (default `2000`)
+- `CLINICIAN_APPROVED_RED_FLAGS` (optional; pipe-separated exact phrases supplied by the hospital clinical team; empty by default)
+
+The chatbot guardrails validate inputs before RAG/LLM processing, treat RAG passages as untrusted reference text, and validate generated output. Urgent escalation phrases are intentionally not pre-populated: configure `CLINICIAN_APPROVED_RED_FLAGS` only with phrases and escalation wording approved by the hospital/clinical team.
 
 Example environment file:
 
 - `backend/.env.example`
+
+The checkpointer uses `LANGGRAPH_POSTGRES_URL`, falling back to `DATABASE_URL`. On startup, `PostgresSaver.setup()` creates/updates LangGraph's checkpoint tables. For browser-refresh recovery, the frontend stores only the active session UUID in tab-scoped `sessionStorage`; the backend revalidates it against the authenticated admin and active `patient_sessions` row before returning the saved draft or conversation history. Apply `backend/migrations/2026_11_20_add_patient_session_draft_profile.sql` to Supabase before starting the API if `patient_sessions.draft_profile` is not already present.
 
 Request body:
 

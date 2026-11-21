@@ -15,6 +15,40 @@ import {
 } from "../utils/uiAnimations";
 
 const learningLanguages = ["en", "hi", "kn", "mr"];
+const supabaseUrl = (
+  import.meta.env.VITE_SUPABASE_URL || "https://gynjgfoxpdqzwbpvckwf.supabase.co"
+).replace(/\/$/, "");
+const learningMediaBaseUrl = (
+  import.meta.env.VITE_LEARNING_MEDIA_BASE_URL ||
+  `${supabaseUrl}/storage/v1/object/public/learning-media`
+).replace(/\/$/, "");
+const topicVideos = {
+  introduction: { path: "Introduction/Intro.mp4", title: "Introduction video" },
+  cld: { path: "CLD/cld_video.mp4", title: "CLD video" },
+  diet: { path: "diet/diet and nutrition.mp4", title: "Diet and nutrition" },
+  exercise: { path: "exercises/exercise and movement.mp4", title: "Exercise and movement" },
+  safety: { path: "Safety and Warnings/safety and warning signs.mp4", title: "Safety and warning signs" },
+  sarcopenia: { path: "sarcopenia/sarcopenia_video.mp4", title: "Sarcopenia video" },
+};
+
+function mediaForCourseTopic(items, topicId) {
+  const images = (items || []).filter((item) => item.media_type !== "video");
+  const video = topicVideos[topicId];
+  if (!video) return images;
+
+  const encodedPath = video.path.split("/").map(encodeURIComponent).join("/");
+  return [
+    ...images,
+    {
+      id: `storage-video-${topicId}`,
+      topic: topicId,
+      media_type: "video",
+      title: video.title,
+      media_url: `${learningMediaBaseUrl}/${encodedPath}`,
+      display_order: 999,
+    },
+  ];
+}
 
 function MediaUnavailable({ title, type }) {
   return (
@@ -124,7 +158,7 @@ function buildPreviousRoute(topicId) {
   return `/learning/${LEARNING_TOPIC_ORDER[currentIndex - 1]}`;
 }
 
-export default function LearningTopicPage() {
+export default function LearningTopicPage({ onExitFlow }) {
   const { topicId = "" } = useParams();
   const { language, setLanguage, t } = useLanguage();
   const topic = getLearningTopicById(topicId, language);
@@ -158,7 +192,7 @@ export default function LearningTopicPage() {
         setMediaState({
           loading: false,
           error: "",
-          items: response?.items || [],
+          items: mediaForCourseTopic(response?.items, topicId),
         });
       } catch (error) {
         if (!isActive) return;
@@ -297,6 +331,7 @@ export default function LearningTopicPage() {
           ? "Continue to Free Q&A"
           : "Next Topic"
       }
+      onExitFlow={onExitFlow}
     >
       <div ref={contentRef} className="stack">
         <section className="rounded-2xl border border-hospital-200 bg-white p-4 shadow-sm sm:p-5">

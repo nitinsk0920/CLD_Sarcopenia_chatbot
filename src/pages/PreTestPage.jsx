@@ -8,6 +8,7 @@ export default function PreTestPage({
   setWeakTopicSummary,
   answers,
   setAnswers,
+  onExitFlow,
 }) {
   const { t, language } = useLanguage();
   const questions = getPreTestQuestionBank(language);
@@ -25,6 +26,7 @@ export default function PreTestPage({
       setScore={setPreTestScore}
       onComplete={setWeakTopicSummary}
       buttonLabel={t("quiz.submitPre")}
+      onExitFlow={onExitFlow}
     />
   );
 }

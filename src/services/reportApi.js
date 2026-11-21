@@ -10,6 +10,25 @@ export function startPatientReportSession(payload) {
   });
 }
 
+export function resumePatientReportSession(sessionId) {
+  return apiFetch(`/session/${encodeURIComponent(sessionId)}/resume`, {
+    fallbackMessage: "Could not restore the active patient session.",
+  });
+}
+
+export function fetchPatientChatHistory(sessionId) {
+  return apiFetch(`/api/chat/session/${encodeURIComponent(sessionId)}/history`, {
+    fallbackMessage: "Could not restore the conversation history.",
+  });
+}
+
+export function clearPatientChatSession(sessionId) {
+  return apiFetch(`/api/chat/session/${encodeURIComponent(sessionId)}`, {
+    method: "DELETE",
+    fallbackMessage: "Could not clear the abandoned session.",
+  });
+}
+
 export function endPatientReportSession(payload) {
   return apiFetch("/session/end", {
     method: "POST",

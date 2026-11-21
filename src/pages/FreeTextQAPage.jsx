@@ -5,6 +5,7 @@ import { faqItems, getAnswerForQuestion } from "../data/faq";
 import { useLanguage } from "../i18n/LanguageContext";
 import { ApiError, apiFetch, getApiBaseUrl } from "../services/apiClient";
 import { animateChatMessages } from "../utils/uiAnimations";
+import { fetchPatientChatHistory } from "../services/reportApi";
 
 const API_BASE_URL = getApiBaseUrl();
 const CHAT_URL = `${API_BASE_URL}/api/chat`;
@@ -26,11 +27,12 @@ export default function FreeTextQAPage({
   patient,
   weakTopicSummary,
   sessionId,
-  onSessionSummaryChange,
+  onExitFlow,
 }) {
   const { t, language } = useLanguage();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState(() => [createInitialAssistantMessage(t)]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -44,6 +46,7 @@ export default function FreeTextQAPage({
   const audioElementRef = useRef(null);
   const audioCacheRef = useRef(new Map());
   const chatScrollRef = useRef(null);
+  const requestInFlightRef = useRef(false);
 
   const stableSessionId = useMemo(
     () => sessionId || window.crypto?.randomUUID?.() || `chat-session-${Date.now()}`,
@@ -58,6 +61,54 @@ export default function FreeTextQAPage({
       return [createInitialAssistantMessage(t)];
     });
   }, [t]);
+
+  useEffect(() => {
+    let active = true;
+    fetchPatientChatHistory(stableSessionId)
+      .then((history) => {
+        if (!active) return;
+        const restored = [createInitialAssistantMessage(t)];
+        if (history.session_summary) {
+          restored.push({
+            id: "restored-session-summary",
+            role: "assistant",
+            text: `Earlier conversation summary: ${history.session_summary}`,
+            topics: [],
+            answerId: "restored-session-summary",
+            responseLanguage: language,
+          });
+        }
+        (history.messages || []).forEach((entry, index) => {
+          if (entry.question) {
+            restored.push({
+              id: `restored-user-${index}`,
+              role: "user",
+              text: entry.question,
+            });
+          }
+          if (entry.answer) {
+            restored.push({
+              id: `restored-assistant-${index}`,
+              answerId: `restored-assistant-${index}`,
+              role: "assistant",
+              text: entry.answer,
+              topics: entry.topic && entry.topic !== "general" ? [entry.topic] : [],
+              responseLanguage: entry.language || language,
+            });
+          }
+        });
+        setMessages(restored);
+      })
+      .catch(() => {
+        // Keep the initial prompt if checkpoint history is unavailable.
+      })
+      .finally(() => {
+        if (active) setHistoryLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [stableSessionId]);
 
   useEffect(() => {
     return () => {
@@ -120,12 +171,14 @@ export default function FreeTextQAPage({
   }
 
   async function askQuestion(question, extra = {}) {
+    if (requestInFlightRef.current) return;
     const trimmedQuestion = question.trim();
     if (!trimmedQuestion) {
       setErrorText(t("freeQA.emptyPrompt"));
       return;
     }
 
+    requestInFlightRef.current = true;
     setLoading(true);
     setErrorText("");
 
@@ -148,15 +201,11 @@ export default function FreeTextQAPage({
           question: trimmedQuestion,
           selected_language: language,
           transcribed_language: extra.transcribedLanguage || "",
-          patient_context: patient,
           weak_topic_summary: weakTopicSummary,
         },
         fallbackMessage: "Could not load a chatbot reply.",
       });
       window.clearTimeout(timeoutId);
-      if (data.session_summary && onSessionSummaryChange) {
-        onSessionSummaryChange(data.session_summary);
-      }
       const assistantMessage = {
         id: data.answer_id || window.crypto?.randomUUID?.() || `assistant-${Date.now()}`,
         answerId: data.answer_id || window.crypto?.randomUUID?.() || `assistant-${Date.now()}`,
@@ -189,6 +238,7 @@ export default function FreeTextQAPage({
         responseLanguage: language,
       });
     } finally {
+      requestInFlightRef.current = false;
       setLoading(false);
     }
   }
@@ -351,6 +401,7 @@ export default function FreeTextQAPage({
       backTo="/teaching-chatbot"
       nextTo="/post-test"
       nextLabel={t("freeQA.next")}
+      onExitFlow={onExitFlow}
     >
       <div className="stack">
         <section className="question-card p-0">
@@ -401,7 +452,7 @@ export default function FreeTextQAPage({
                       type="button"
                       className="rounded-full border border-hospital-300 bg-white px-4 py-2 text-sm font-medium text-hospital-700 transition hover:bg-hospital-50"
                       onClick={() => askQuestion(item.question)}
-                      disabled={loading || streaming || transcribing}
+                      disabled={historyLoading || loading || streaming || transcribing}
                     >
                       {item.question}
                     </button>
@@ -417,7 +468,7 @@ export default function FreeTextQAPage({
                     onChange={(event) => setInput(event.target.value)}
                     placeholder={t("freeQA.placeholder")}
                     rows={2}
-                    disabled={loading || streaming || transcribing}
+                    disabled={historyLoading || loading || streaming || transcribing}
                   />
                 </label>
 
@@ -425,7 +476,7 @@ export default function FreeTextQAPage({
                   <button
                     className="btn btn-primary btn-block"
                     type="submit"
-                    disabled={loading || streaming || transcribing}
+                    disabled={historyLoading || loading || streaming || transcribing}
                   >
                     {loading || streaming ? t("freeQA.streaming") : t("freeQA.ask")}
                   </button>
@@ -433,7 +484,7 @@ export default function FreeTextQAPage({
                     className="btn btn-secondary gap-2"
                     type="button"
                     onClick={recording ? stopRecording : startRecording}
-                    disabled={loading || streaming || transcribing}
+                    disabled={historyLoading || loading || streaming || transcribing}
                     aria-label={recording ? t("freeQA.stopRecording") : t("freeQA.recordVoice")}
                   >
                     <svg

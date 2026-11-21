@@ -1,6 +1,9 @@
 node_modules/
 dist/
 build/
+.venv/
+venv/
+env/
 
 .env
 .env.*
@@ -22,3 +25,16 @@ Thumbs.db
 
 .vscode/
 .idea/
+
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local credentials or personal/generated files
+/password.py
+/*.pdf
+*.code-workspace
+
+# Generated Locust run reports; keep the results directory itself in Git
+backend/loadtest/results/*
+!backend/loadtest/results/.gitkeep

@@ -10,11 +10,12 @@ from models.report_models import LearningMedia
 
 
 TOPIC_ALIASES = {
+    "introduction": {"introduction", "intro", "introduction video"},
     "cld": {"cld", "liver", "cld basics", "cld/liver"},
     "sarcopenia": {"sarcopenia", "muscle", "muscle loss", "sarcopenia basics"},
-    "diet": {"diet", "protein", "diet/protein", "diet and protein", "nutrition"},
-    "exercise": {"exercise", "exercises", "safe exercise", "activity"},
-    "safety": {"safety", "warning", "warning signs", "safety/warning signs"},
+    "diet": {"diet", "protein", "diet/protein", "diet and protein", "diet and nutrition", "nutrition"},
+    "exercise": {"exercise", "exercises", "safe exercise", "exercise and movement", "activity"},
+    "safety": {"safety", "warning", "warning signs", "safety/warning signs", "safety and warnings", "safety and warning signs"},
 }
 
 

@@ -8,6 +8,7 @@ const kn = {
     languageLabel: "ಭಾಷೆ",
     back: "ಹಿಂದೆ",
     next: "ಮುಂದೆ",
+    home: "ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ",
   },
   languages: {
     en: "English",

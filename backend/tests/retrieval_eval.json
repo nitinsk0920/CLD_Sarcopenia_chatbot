@@ -1,0 +1,6 @@
+[
+  {"language": "en", "query": "What is chronic liver disease?", "expected_topic": "cld"},
+  {"language": "hi", "query": "लिवर की बीमारी में मांसपेशियों की कमजोरी क्यों होती है?", "expected_topic": "sarcopenia"},
+  {"language": "kn", "query": "ಯಕೃತ್ತಿನ ಕಾಯಿಲೆಯಲ್ಲಿ ಸ್ನಾಯು ದುರ್ಬಲತೆ ಏಕೆ ಉಂಟಾಗುತ್ತದೆ?", "expected_topic": "sarcopenia"},
+  {"language": "mr", "query": "यकृताच्या आजारात स्नायू कमकुवत का होतात?", "expected_topic": "sarcopenia"}
+]

@@ -4,6 +4,8 @@ const en = {
     languageLabel: "Language",
     back: "Back",
     next: "Next",
+    home: "Back to Home",
+    loading: "Please wait...",
   },
   languages: {
     en: "English",
@@ -22,7 +24,7 @@ const en = {
   },
   patientForm: {
     title: "Patient Form",
-    subtitle: "For personalization only. Data stays local in frontend state for this demo.",
+    subtitle: "Use the patient ID only. Form answers are saved to this learning session.",
     patientId: "Patient ID",
     patientIdPlaceholder: "Enter patient ID",
     age: "Age (years)",
@@ -116,7 +118,7 @@ const en = {
       secondaryEducation: "Secondary education",
       higherSecondary: "Higher secondary",
       graduateAndAbove: "Graduate and above",
-      employed: "Employed",
+      employed: "Employed (private, government, or self-employed)",
       unemployed: "Unemployed",
       homemaker: "Homemaker",
       retired: "Retired",

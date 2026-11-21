@@ -2,11 +2,22 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
+import os
 import re
+import tempfile
+import time
+import unicodedata
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
+
+from google import genai
+from google.genai import types
+
+from config import get_settings
+from loadtest.config import loadtest_mock_mode_enabled
 
 try:
     import faiss
@@ -24,14 +35,19 @@ FAISS_INDEX_PATH = VECTOR_STORE_DIR / "knowledge.index"
 METADATA_PATH = VECTOR_STORE_DIR / "knowledge_metadata.json"
 MANIFEST_PATH = VECTOR_STORE_DIR / "manifest.json"
 
-EMBED_DIM = 384
+EMBED_DIM = get_settings().gemini_embedding_dimension
+EMBED_MODEL = get_settings().gemini_embedding_model
+logger = logging.getLogger(__name__)
+_embedding_client = None
+_loaded_resources: tuple[Any, list[dict[str, Any]]] | None = None
+_loadtest_mock_embeddings_enabled = False
 FAQ_CLOSE_MATCH_THRESHOLD = 0.82
 TOPIC_KEYWORDS = {
-    "cld": ["cld", "liver", "cirrhosis", "hepatic"],
-    "sarcopenia": ["sarcopenia", "muscle", "weakness", "muscle loss"],
-    "diet": ["diet", "protein", "protien", "food", "meal", "egg", "eggs", "dal", "paneer"],
-    "exercise": ["exercise", "excercise", "walking", "walk", "activity", "training"],
-    "safety": ["safe", "safety", "dizzy", "dizziness", "warning", "weak"],
+    "cld": ["cld", "liver", "cirrhosis", "hepatic", "यकृत", "लिवर", "ಯಕೃತ್ತು", "ಯಕೃತ್ತಿನ", "yakrut"],
+    "sarcopenia": ["sarcopenia", "muscle", "weakness", "weak", "tired", "fatigue", "muscle loss", "मांसपेश", "कमजोरी", "थकान", "स्नायू", "अशक्तपणा", "थकवा", "ಸ್ನಾಯು", "ದೌರ್ಬಲ್ಯ", "ದಣಿವು", "ಅಶಕ್ತತೆ"],
+    "diet": ["diet", "nutrition", "protein", "protien", "food", "foods", "meal", "eat", "egg", "eggs", "dal", "lentil", "pulse", "paneer", "milk", "yogurt", "fish", "chicken", "tofu", "अंडा", "अंडे", "दाल", "खाना", "पनीर", "आहार", "पोषण", "प्रोटीन", "प्रथिने", "अंडी", "डाळ", "खाद्यपदार्थ", "ಮೊಟ್ಟೆ", "ಬೇಳೆ", "ಆಹಾರ", "ಪೋಷಣೆ", "ಪ್ರೋಟೀನ್", "ಹಾಲು", "ಪನೀರ್"],
+    "exercise": ["exercise", "excercise", "walking", "walk", "activity", "training", "strength", "व्यायाम", "चालणे", "शक्ती", "ವ್ಯಾಯಾಮ", "ನಡೆಯುವುದು", "ಶಕ್ತಿ"],
+    "safety": ["safe", "safety", "dizzy", "dizziness", "warning", "चक्कर", "सुरक्षा", "सुरक्षित", "ಎಚ್ಚರಿಕೆ", "ತಲೆಸುತ್ತು", "धोका", "अशक्तपणा"],
 }
 
 
@@ -53,14 +69,27 @@ def _expand_medical_aliases(text: str) -> str:
 
 
 def _normalize_text(text: str) -> str:
-    lowered = _expand_medical_aliases(text).lower().strip()
-    lowered = re.sub(r"[^a-z0-9\s]", " ", lowered)
-    lowered = re.sub(r"\s+", " ", lowered)
-    return lowered
+    lowered = unicodedata.normalize("NFC", _expand_medical_aliases(text).casefold()).strip()
+    lowered = "".join(
+        char if char.isspace() or unicodedata.category(char)[0] in {"L", "N", "M"} else " "
+        for char in lowered
+    )
+    return re.sub(r"\s+", " ", lowered, flags=re.UNICODE).strip()
 
 
 def _tokenize(text: str) -> list[str]:
-    return re.findall(r"[a-z0-9]+", _normalize_text(text))
+    tokens: list[str] = []
+    current: list[str] = []
+    for char in _normalize_text(text):
+        category = unicodedata.category(char)[0]
+        if category in {"L", "N"} or (category == "M" and current):
+            current.append(char)
+        elif current:
+            tokens.append("".join(current))
+            current = []
+    if current:
+        tokens.append("".join(current))
+    return tokens
 
 
 def _infer_query_topics(question: str) -> list[str]:
@@ -85,6 +114,12 @@ def _is_definition_query(question: str) -> bool:
         "meaning of",
         "define",
         "explain",
+        "क्या है",
+        "क्या मतलब",
+        "ಎಂದರೇನು",
+        "ಅರ್ಥವೇನು",
+        "म्हणजे काय",
+        "अर्थ काय",
     ]
     return any(pattern in q for pattern in definition_patterns)
 
@@ -183,7 +218,7 @@ def find_faq_match(
                     best_score = score
                     best_item = item
 
-            if best_item:
+            if best_item and best_score >= min_similarity:
                 return FAQMatch(
                     chunk_id=best_item["chunk_id"],
                     question=best_item["question"],
@@ -264,30 +299,74 @@ def find_faq_match(
     )
 
 
-def _embed_text(text: str, dim: int = EMBED_DIM) -> np.ndarray:
-    vector = np.zeros(dim, dtype=np.float32)
+def _get_embedding_client():
+    global _embedding_client
+    if loadtest_mock_mode_enabled():
+        raise RuntimeError(
+            "External Gemini embedding access is blocked while local load-test mocks are enabled."
+        )
+    if _embedding_client is None:
+        api_key = get_settings().gemini_api_key
+        if not api_key:
+            raise RuntimeError("Set GOOGLE_API_KEY or GEMINI_API_KEY to use Gemini embeddings.")
+        _embedding_client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(timeout=get_settings().model_timeout_ms),
+        )
+    return _embedding_client
+
+
+def _mock_embedding(text: str) -> np.ndarray:
+    """Stable local-only hashing vectors; never mixed with the persisted Gemini index."""
     tokens = _tokenize(text)
-    if not tokens:
-        return vector
-
-    for token in tokens:
-        digest = hashlib.blake2b(token.encode("utf-8"), digest_size=8).digest()
-        index = int.from_bytes(digest[:4], "little") % dim
-        sign = 1.0 if (digest[4] % 2 == 0) else -1.0
-        vector[index] += sign
-
+    features = list(tokens) + [f"{left}_{right}" for left, right in zip(tokens, tokens[1:])]
+    vector = np.zeros((EMBED_DIM,), dtype=np.float32)
+    for feature in features:
+        digest = hashlib.blake2b(feature.encode("utf-8"), digest_size=16).digest()
+        bucket = int.from_bytes(digest[:8], "little") % EMBED_DIM
+        vector[bucket] += 1.0 if digest[8] & 1 else -1.0
     norm = float(np.linalg.norm(vector))
-    if norm > 0:
+    if norm:
         vector /= norm
-
     return vector
 
 
-def embed_texts(texts: list[str], dim: int = EMBED_DIM) -> np.ndarray:
-    vectors = [_embed_text(text, dim=dim) for text in texts]
-    if not vectors:
-        return np.zeros((0, dim), dtype=np.float32)
-    return np.vstack(vectors).astype(np.float32)
+def _embed_texts(texts: list[str], *, is_query: bool, titles: list[str] | None = None) -> np.ndarray:
+    if not texts:
+        return np.zeros((0, EMBED_DIM), dtype=np.float32)
+    if _loadtest_mock_embeddings_enabled or loadtest_mock_mode_enabled():
+        return np.stack([_mock_embedding(text) for text in texts]).astype(np.float32)
+    if titles is None:
+        titles = [""] * len(texts)
+    formatted = [
+        f"task: question answering | query: {text}" if is_query
+        else f"title: {title or 'Health education'} | text: {text}"
+        for text, title in zip(texts, titles)
+    ]
+    last_error = None
+    retries = max(0, min(get_settings().model_max_retry, 1))
+    for attempt in range(retries + 1):
+        try:
+            response = _get_embedding_client().models.embed_content(
+                model=EMBED_MODEL,
+                contents=formatted,
+                config=types.EmbedContentConfig(output_dimensionality=EMBED_DIM),
+            )
+            vectors = np.asarray([item.values for item in response.embeddings], dtype=np.float32)
+            if vectors.shape != (len(texts), EMBED_DIM):
+                raise ValueError(f"Gemini returned embedding shape {vectors.shape}; expected {(len(texts), EMBED_DIM)}")
+            if not np.isfinite(vectors).all():
+                raise ValueError("Gemini returned non-finite embedding values.")
+            norms = np.linalg.norm(vectors, axis=1, keepdims=True)
+            if np.any(norms == 0):
+                raise ValueError("Gemini returned an empty embedding vector.")
+            return (vectors / norms).astype(np.float32)
+        except Exception as exc:
+            last_error = exc
+            if attempt < retries:
+                logger.warning("Gemini embedding attempt failed; retrying once (%s).", type(exc).__name__)
+                time.sleep(0.5 * (attempt + 1))
+    raise RuntimeError("Gemini embedding request failed; retrieval cannot continue.") from last_error
 
 
 def _save_json(path: Path, payload: Any) -> None:
@@ -337,7 +416,8 @@ def build_vector_index(
             }
 
     documents = [str(item.get("content", "")) for item in docs]
-    embeddings = embed_texts(documents, dim=EMBED_DIM)
+    titles = [f"{item.get('topic', '')} / {item.get('subtopic', '')} ({item.get('source', '')})" for item in docs]
+    embeddings = _embed_texts(documents, is_query=False, titles=titles)
 
     index = faiss.IndexFlatIP(EMBED_DIM)
     if len(embeddings):
@@ -359,11 +439,32 @@ def build_vector_index(
         "signature": signature,
         "count": len(docs),
         "dim": EMBED_DIM,
+        "embedding_model": EMBED_MODEL,
+        "similarity_metric": "cosine_similarity (normalized vectors + inner product)",
+        "source_content_hash": signature,
+        "created_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
     }
-
-    faiss.write_index(index, str(index_path))
-    _save_json(metadata_path, metadata)
-    _save_json(manifest_path, manifest)
+    if index.ntotal != len(metadata) or index.d != EMBED_DIM:
+        raise ValueError("Refusing to save inconsistent FAISS index and metadata.")
+    if not np.isfinite(embeddings).all():
+        raise ValueError("Refusing to save non-finite embeddings.")
+    staged = Path(tempfile.mkdtemp(prefix="faiss-build-", dir=store_dir))
+    try:
+        staged_index = staged / index_path.name
+        staged_metadata = staged / metadata_path.name
+        staged_manifest = staged / manifest_path.name
+        faiss.write_index(index, str(staged_index))
+        _save_json(staged_metadata, metadata)
+        _save_json(staged_manifest, manifest)
+        faiss.read_index(str(staged_index))
+        if len(_load_json(staged_metadata)) != index.ntotal:
+            raise ValueError("Staged metadata count does not match FAISS vectors.")
+        os.replace(staged_index, index_path)
+        os.replace(staged_metadata, metadata_path)
+        os.replace(staged_manifest, manifest_path)
+    finally:
+        import shutil
+        shutil.rmtree(staged, ignore_errors=True)
 
     return {
         "index_path": str(index_path),
@@ -385,14 +486,52 @@ def _load_vector_resources(
     manifest_path = store_dir / MANIFEST_PATH.name
 
     if not (index_path.exists() and metadata_path.exists() and manifest_path.exists()):
-        build_vector_index(persist_dir=store_dir, force_rebuild=False)
+        raise RuntimeError(f"Prebuilt Gemini FAISS index is missing in {store_dir}. Run `python build_rag_index.py` offline.")
 
     index = faiss.read_index(str(index_path))
     metadata = _load_json(metadata_path)
     if not isinstance(metadata, list):
         raise ValueError("Metadata file is invalid. Expected list.")
+    manifest = _load_json(manifest_path)
+    if index.d != EMBED_DIM or manifest.get("dim") != EMBED_DIM or manifest.get("embedding_model") != EMBED_MODEL:
+        raise ValueError(f"FAISS index/model mismatch; expected {EMBED_MODEL} with {EMBED_DIM} dimensions. Rebuild the index.")
+    if index.ntotal != len(metadata) or manifest.get("count") != len(metadata):
+        raise ValueError("FAISS index vector count does not match metadata records.")
 
     return index, metadata
+
+
+def initialize_vector_resources(persist_dir: str | Path = VECTOR_STORE_DIR) -> None:
+    """Load and validate the committed index once during backend startup."""
+    global _loaded_resources, _loadtest_mock_embeddings_enabled
+    if loadtest_mock_mode_enabled():
+        raise RuntimeError(
+            "Local load-test mock mode is enabled; refusing to load persisted Gemini embeddings."
+        )
+    _loaded_resources = _load_vector_resources(persist_dir)
+    _loadtest_mock_embeddings_enabled = False
+
+
+def initialize_loadtest_mock_vector_resources() -> None:
+    """Build a process-local fixture index; this never reads/writes Gemini vectors."""
+    global _loaded_resources, _loadtest_mock_embeddings_enabled
+    chunks = load_prepared_chunks()
+    metadata = [
+        {
+            "chunk_id": str(item.get("id", "")),
+            "topic": str(item.get("topic", "")),
+            "subtopic": str(item.get("subtopic", "")),
+            "source": str(item.get("source", "")),
+            "content": str(item.get("content", "")),
+        }
+        for item in chunks
+    ]
+    _loadtest_mock_embeddings_enabled = True
+    vectors = _embed_texts([item["content"] for item in metadata], is_query=False)
+    index = faiss.IndexFlatIP(EMBED_DIM)
+    if len(vectors):
+        index.add(vectors)
+    _loaded_resources = (index, metadata)
 
 
 def retrieve_relevant_chunks(
@@ -406,6 +545,11 @@ def retrieve_relevant_chunks(
     if not question:
         return {"query": user_question, "faq_first_match": None, "retrieved_chunks": []}
 
+    if loadtest_mock_mode_enabled() and not _loadtest_mock_embeddings_enabled:
+        raise RuntimeError(
+            "Local load-test mock mode is enabled, but the matching temporary mock FAISS index was not initialized."
+        )
+
     chunks = load_prepared_chunks()
     faq_entries = _build_faq_entries(chunks)
     faq_match = find_faq_match(question, faq_entries) if faq_first else None
@@ -414,8 +558,11 @@ def retrieve_relevant_chunks(
     if preferred_topics:
         focus_topics.update(topic for topic in preferred_topics if topic)
 
-    index, metadata = _load_vector_resources(persist_dir=persist_dir)
-    query_vec = embed_texts([question], dim=EMBED_DIM)
+    if persist_dir == VECTOR_STORE_DIR and _loaded_resources is not None:
+        index, metadata = _loaded_resources
+    else:
+        index, metadata = _load_vector_resources(persist_dir=persist_dir)
+    query_vec = _embed_texts([question], is_query=True)
 
     search_k = max(top_k * 5, 15)
     scores, indices = index.search(query_vec, search_k)

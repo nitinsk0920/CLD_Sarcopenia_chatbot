@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useLanguage } from "../i18n/LanguageContext";
 
@@ -10,8 +10,22 @@ export default function AppLayout({
   backLabel,
   nextTo,
   nextLabel,
+  onExitFlow,
+  onNext,
+  nextLoading = false,
 }) {
   const { t } = useLanguage();
+  const navigate = useNavigate();
+
+  async function handleExitFlow() {
+    await onExitFlow?.();
+    navigate("/welcome", { replace: true });
+  }
+
+  async function handleNext() {
+    await onNext?.();
+    if (nextTo) navigate(nextTo);
+  }
 
   return (
     <div className="app-shell">
@@ -35,11 +49,24 @@ export default function AppLayout({
         ) : (
           <span className="inline-block min-w-28" />
         )}
-        {nextTo ? (
-          <Link className="btn btn-primary min-w-36" to={nextTo}>
-            {nextLabel || t("app.next")}
-          </Link>
-        ) : null}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          {onExitFlow ? (
+            <button className="btn btn-secondary" type="button" onClick={handleExitFlow}>
+              {t("app.home")}
+            </button>
+          ) : null}
+          {nextTo ? (
+            onNext ? (
+              <button className="btn btn-primary min-w-36" type="button" onClick={handleNext} disabled={nextLoading}>
+                {nextLoading ? t("app.loading") : nextLabel || t("app.next")}
+              </button>
+            ) : (
+              <Link className="btn btn-primary min-w-36" to={nextTo}>
+                {nextLabel || t("app.next")}
+              </Link>
+            )
+          ) : null}
+        </div>
       </footer>
     </div>
   );

@@ -7,6 +7,7 @@ export default function PostTestPage({
   setPostTestSummary,
   answers,
   setAnswers,
+  onExitFlow,
 }) {
   const { t, language } = useLanguage();
   const questions = getPostTestQuestionBank(language);
@@ -24,6 +25,7 @@ export default function PostTestPage({
       setScore={setPostTestScore}
       onComplete={setPostTestSummary}
       buttonLabel={t("quiz.submitPost")}
+      onExitFlow={onExitFlow}
     />
   );
 }

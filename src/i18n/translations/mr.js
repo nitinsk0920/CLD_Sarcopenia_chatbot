@@ -8,6 +8,7 @@ const mr = {
     languageLabel: "भाषा",
     back: "मागे",
     next: "पुढे",
+    home: "मुख्यपृष्ठावर जा",
   },
   languages: {
     en: "English",

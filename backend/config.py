@@ -53,6 +53,8 @@ class Settings:
     gemini_model: str
     gemini_tts_model: str
     gemini_api_key: str
+    gemini_embedding_model: str
+    gemini_embedding_dimension: int
     chat_timeout_seconds: int
     audio_cache_dir: Path
     report_pdf_dir: Path
@@ -73,10 +75,10 @@ def get_settings() -> Settings:
         or "gemini-2.5-flash"
     )
     gemini_model_fallback_1 = (
-        os.getenv("GEMINI_MODEL_FALLBACK_1", "gemini-2.0-flash").strip() or "gemini-2.0-flash"
+        os.getenv("GEMINI_MODEL_FALLBACK_1", "gemini-3.5-flash-lite").strip()
     )
     gemini_model_fallback_2 = (
-        os.getenv("GEMINI_MODEL_FALLBACK_2", "gemini-1.5-flash").strip() or "gemini-1.5-flash"
+        os.getenv("GEMINI_MODEL_FALLBACK_2", "").strip()
     )
     gemini_tts_model_primary = (
         os.getenv(
@@ -100,6 +102,8 @@ def get_settings() -> Settings:
         gemini_model=gemini_model_primary,
         gemini_tts_model=gemini_tts_model_primary,
         gemini_api_key=os.getenv("GOOGLE_API_KEY", os.getenv("GEMINI_API_KEY", "")).strip(),
+        gemini_embedding_model=os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-2").strip(),
+        gemini_embedding_dimension=int(os.getenv("GEMINI_EMBEDDING_DIMENSION", "768")),
         chat_timeout_seconds=int(os.getenv("CHAT_TIMEOUT_SECONDS", "60")),
         audio_cache_dir=Path(
             os.getenv(
@@ -115,7 +119,7 @@ def get_settings() -> Settings:
         ).resolve(),
         database_url=os.getenv("DATABASE_URL", os.getenv("SUPABASE_DATABASE_URL", "")).strip(),
         postgres_url=os.getenv("LANGGRAPH_POSTGRES_URL", os.getenv("DATABASE_URL", "")).strip(),
-        allow_in_memory_fallback=os.getenv("ALLOW_IN_MEMORY_CHECKPOINTER_FALLBACK", "true").lower()
+        allow_in_memory_fallback=os.getenv("ALLOW_IN_MEMORY_CHECKPOINTER_FALLBACK", "false").lower()
         != "false",
         default_voice_name=os.getenv("GEMINI_TTS_VOICE", "Kore").strip() or "Kore",
         jwt_secret_key=os.getenv("JWT_SECRET_KEY", os.getenv("JWT_SECRET", "")).strip(),

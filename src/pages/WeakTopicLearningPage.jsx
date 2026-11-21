@@ -3,7 +3,7 @@ import AppLayout from "../components/AppLayout";
 import { groupWrongQuestionsByTopic } from "../data/weakTopicLearning";
 import { useLanguage } from "../i18n/LanguageContext";
 
-export default function WeakTopicLearningPage({ weakTopicSummary }) {
+export default function WeakTopicLearningPage({ weakTopicSummary, onExitFlow }) {
   const { t, language } = useLanguage();
   const topicGroups = useMemo(
     () => groupWrongQuestionsByTopic(weakTopicSummary, language),
@@ -20,6 +20,7 @@ export default function WeakTopicLearningPage({ weakTopicSummary }) {
       backTo="/weak-topics"
       nextTo="/teaching-chatbot"
       nextLabel={t("weakTopicLearning.continue")}
+      onExitFlow={onExitFlow}
     >
       <div className="stack">
         <section className="question-card">

@@ -41,6 +41,15 @@ def initialize_database() -> bool:
                     """
                 )
             ).fetchall()
+            session_column_rows = connection.execute(
+                text(
+                    """
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public' AND table_name = 'patient_sessions'
+                    """
+                )
+            ).fetchall()
     except SQLAlchemyError as exc:
         raise RuntimeError(
             "Could not connect to Supabase PostgreSQL. Check DATABASE_URL, network access, and SSL settings."
@@ -51,6 +60,12 @@ def initialize_database() -> bool:
     if missing_tables:
         raise RuntimeError(
             "Supabase schema is missing required tables: " + ", ".join(missing_tables)
+        )
+    session_columns = {row[0] for row in session_column_rows}
+    if "draft_profile" not in session_columns:
+        raise RuntimeError(
+            "Supabase schema is missing patient_sessions.draft_profile. "
+            "Run backend/migrations/2026_11_20_add_patient_session_draft_profile.sql before deploying."
         )
     return True
 

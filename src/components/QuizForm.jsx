@@ -16,6 +16,7 @@ export default function QuizForm({
   onComplete,
   buttonLabel,
   quizSessionKey,
+  onExitFlow,
 }) {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -73,7 +74,7 @@ export default function QuizForm({
   }
 
   return (
-    <AppLayout title={title} subtitle={subtitle} backTo={backTo}>
+    <AppLayout title={title} subtitle={subtitle} backTo={backTo} onExitFlow={onExitFlow}>
       <form onSubmit={handleSubmit} className="stack">
         <section className="question-card">
           <p className="muted">

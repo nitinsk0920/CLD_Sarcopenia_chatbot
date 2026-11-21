@@ -84,6 +84,10 @@ def resolve_response_language(
     if detected:
         return detected
 
+    requested_language = _explicit_response_language_request(text)
+    if requested_language:
+        return requested_language
+
     text_detected = detect_language_from_text(text)
     if text_detected:
         return text_detected
@@ -97,3 +101,14 @@ def resolve_response_language(
         return preferred
 
     return "en"
+
+
+def _explicit_response_language_request(text: str) -> str | None:
+    normalized = (text or "").casefold()
+    patterns = (
+        ("hi", r"\b(?:answer|reply|respond|explain|write)\s+(?:in|using)\s+hindi\b|हिंदी में (?:बताएं|जवाब|समझाएं)"),
+        ("kn", r"\b(?:answer|reply|respond|explain|write)\s+(?:in|using)\s+kannada\b|ಕನ್ನಡದಲ್ಲಿ (?:ಹೇಳಿ|ಉತ್ತರಿಸಿ|ವಿವರಿಸಿ)"),
+        ("mr", r"\b(?:answer|reply|respond|explain|write)\s+(?:in|using)\s+marathi\b|मराठीत (?:सांगा|उत्तर|समजावून)"),
+        ("en", r"\b(?:answer|reply|respond|explain|write)\s+(?:in|using)\s+english\b|इंग्रजीत (?:सांगा|उत्तर)"),
+    )
+    return next((code for code, pattern in patterns if re.search(pattern, normalized)), None)

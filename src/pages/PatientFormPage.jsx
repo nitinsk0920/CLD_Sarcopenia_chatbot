@@ -3,6 +3,7 @@ import { useState } from "react";
 import AppLayout from "../components/AppLayout";
 import { normalizeLanguageCode, useLanguage } from "../i18n/LanguageContext";
 import { getPatientFormOverride } from "../i18n/patientFormOverrides";
+import { getPatientRegistrationText } from "../i18n/patientRegistration";
 
 const genderOptions = ["male", "female", "other"];
 const educationalQualificationOptions = [
@@ -12,10 +13,10 @@ const educationalQualificationOptions = [
   "higherSecondary",
   "graduateAndAbove",
 ];
-const occupationOptions = ["employed", "unemployed", "homemaker", "retired"];
+const occupationOptions = ["unemployed", "homemaker", "employed", "retired"];
 const yesNoNotSureOptions = ["yes", "no", "notSure"];
 const yesNoOptions = ["yes", "no"];
-const dietOptions = ["vegetarian", "nonVegetarian", "mixed"];
+const dietOptions = ["vegetarian", "mixed"];
 const appetiteOptions = ["normal", "lowAppetite"];
 const proteinOptions = ["enoughProtein", "notEnoughProtein", "unsureProtein"];
 const exerciseTypeOptions = ["walking", "stretching", "strength", "noneExercise"];
@@ -30,7 +31,22 @@ const symptomOptions = [
   "poorSleep",
   "appetiteLoss",
 ];
-const habitOptions = ["alcohol", "smoking", "tobacco"];
+const habitOptions = ["alcohol", "smoking", "tobacco_chewing", "none"];
+const ageGroupOptions = ["age_18_30", "age_31_45", "age_46_60", "age_61_plus"];
+const maritalStatusOptions = ["married", "unmarried", "widowed", "divorced_separated"];
+const familyTypeOptions = ["nuclear", "joint", "extended"];
+const residenceOptions = ["rural", "urban"];
+const religionOptions = ["hindu", "muslim", "christian", "religion_other"];
+const socioeconomicOptions = ["socioeconomic_lower", "socioeconomic_middle", "socioeconomic_upper"];
+const cldDurationOptions = ["less_than_1_year", "one_to_five_years", "six_to_ten_years", "more_than_10_years"];
+const cldEtiologyOptions = ["alcohol_related", "viral_hepatitis", "fatty_liver", "etiology_other"];
+const cldStageOptions = ["compensated_cirrhosis", "decompensated_cirrhosis", "stage_other", "not_documented"];
+const comorbidityOptions = ["diabetes", "hypertension", "comorbidity_other", "no_known_comorbidities"];
+const sarcopeniaDurationOptions = ["less_than_6_months", "six_to_twelve_months", "more_than_1_year", "not_documented"];
+const cldTreatmentOptions = ["medical_management_only", "medical_nutrition", "treatment_other", "complications_management"];
+const hospitalizationOptions = ["never", "once", "twice", "three_or_more"];
+const counsellingOptions = ["yes", "no", "not_sure"];
+const previousEducationOptions = ["education_none", "education_cld", "education_sarcopenia", "education_both"];
 
 function SectionCard({ title, helpText, children }) {
   return (
@@ -48,7 +64,43 @@ function FieldPanel({ children, wide = false }) {
   return <div className={`form-panel ${wide ? "form-panel-wide" : ""}`}>{children}</div>;
 }
 
-export default function PatientFormPage({ patient, setPatient, onSessionStart }) {
+function SingleChoice({ name, label, options, value, onChange, text, columns = "choice-grid-three" }) {
+  return (
+    <fieldset className="field">
+      <span>{label}</span>
+      <div className={`choice-grid ${columns}`}>
+        {options.map((item) => (
+          <label key={item} className="choice-item">
+            <input type="radio" name={name} value={item} checked={value === item} onChange={onChange} />
+            <span>{text(`options.${item}`)}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function MultiChoice({ name, label, options, values = [], onChange, text, columns = "choice-grid-three" }) {
+  return (
+    <fieldset className="field">
+      <span>{label}</span>
+      <div className={`choice-grid ${columns}`}>
+        {options.map((item) => (
+          <label key={item} className="choice-item">
+            <input
+              type="checkbox"
+              checked={values.includes(item)}
+              onChange={(event) => onChange(name, item, event.target.checked)}
+            />
+            <span>{text(`options.${item}`)}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+export default function PatientFormPage({ patient, setPatient, onSessionStart, onExitFlow }) {
   const navigate = useNavigate();
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
@@ -56,6 +108,10 @@ export default function PatientFormPage({ patient, setPatient, onSessionStart })
 
   function pf(path) {
     return getPatientFormOverride(language, path) ?? t(path);
+  }
+
+  function reg(path) {
+    return getPatientRegistrationText(language, path);
   }
 
   function handleChange(event) {
@@ -70,9 +126,16 @@ export default function PatientFormPage({ patient, setPatient, onSessionStart })
 
   function handleCheckboxGroupChange(name, value, checked) {
     setPatient((prev) => {
-      const currentItems = Array.isArray(prev[name]) ? prev[name] : [];
+      const rawItems = Array.isArray(prev[name]) ? prev[name] : [];
+      const currentItems = name === "habits"
+        ? rawItems.map((item) => item === "tobacco" ? "tobacco_chewing" : item)
+        : rawItems;
+      const isExclusiveNone = value === "none" || value === "no_known_comorbidities";
+      const exclusiveValue = name === "habits" ? "none" : "no_known_comorbidities";
       const nextItems = checked
-        ? [...currentItems, value]
+        ? isExclusiveNone
+          ? [value]
+          : [...currentItems.filter((item) => item !== exclusiveValue), value]
         : currentItems.filter((item) => item !== value);
 
       return { ...prev, [name]: nextItems };
@@ -83,7 +146,7 @@ export default function PatientFormPage({ patient, setPatient, onSessionStart })
     const nextErrors = {};
 
     if (!patient.patientId) nextErrors.patientId = pf("patientForm.errors.patientId");
-    if (!patient.age) nextErrors.age = pf("patientForm.errors.age");
+    if (!patient.ageGroup && !patient.age) nextErrors.ageGroup = reg("ageRequired");
     if (!patient.gender) nextErrors.gender = pf("patientForm.errors.gender");
     if (!patient.educationalQualification) {
       nextErrors.educationalQualification = pf("patientForm.errors.educationalQualification");
@@ -126,7 +189,7 @@ export default function PatientFormPage({ patient, setPatient, onSessionStart })
     if (onSessionStart) {
       const result = await onSessionStart(patient);
       if (!result?.success) {
-        setSubmitError(result?.error || "Could not start the patient session.");
+        setSubmitError(result?.error || reg("sessionStartFailed"));
         return;
       }
     }
@@ -139,11 +202,12 @@ export default function PatientFormPage({ patient, setPatient, onSessionStart })
       title={pf("patientForm.title")}
       subtitle={pf("patientForm.subtitle")}
       backTo="/welcome"
+      onExitFlow={onExitFlow}
     >
       <form onSubmit={handleSubmit} className="stack">
         <SectionCard
-          title={t("patientForm.basicInfoTitle")}
-          helpText={pf("patientForm.basicInfoHelp")}
+      title={reg("socioTitle")}
+      helpText={reg("socioHelp")}
         >
           <div className="form-section-grid">
             <FieldPanel>
@@ -161,21 +225,9 @@ export default function PatientFormPage({ patient, setPatient, onSessionStart })
               </label>
             </FieldPanel>
 
-            <FieldPanel>
-              <label className="field">
-                <span>{pf("patientForm.age")}</span>
-                <input
-                  type="number"
-                  name="age"
-                  min="1"
-                  max="120"
-                  value={patient.age}
-                  onChange={handleChange}
-                  placeholder={pf("patientForm.agePlaceholder")}
-                  required
-                />
-                {errors.age ? <small className="error-text">{errors.age}</small> : null}
-              </label>
+            <FieldPanel wide>
+              <SingleChoice name="ageGroup" label={reg("ageGroup")} options={ageGroupOptions} value={patient.ageGroup} onChange={handleChange} text={reg} columns="choice-grid-four" />
+              {errors.ageGroup ? <small className="error-text">{errors.ageGroup}</small> : null}
             </FieldPanel>
 
             <FieldPanel wide>
@@ -200,8 +252,24 @@ export default function PatientFormPage({ patient, setPatient, onSessionStart })
             </FieldPanel>
 
             <FieldPanel wide>
+              <SingleChoice name="maritalStatus" label={reg("maritalStatus")} options={maritalStatusOptions} value={patient.maritalStatus} onChange={handleChange} text={reg} columns="choice-grid-four" />
+            </FieldPanel>
+            <FieldPanel>
+              <SingleChoice name="familyType" label={reg("familyType")} options={familyTypeOptions} value={patient.familyType} onChange={handleChange} text={reg} />
+            </FieldPanel>
+            <FieldPanel>
+              <SingleChoice name="residence" label={reg("residence")} options={residenceOptions} value={patient.residence} onChange={handleChange} text={reg} columns="choice-grid-two" />
+            </FieldPanel>
+            <FieldPanel wide>
+              <SingleChoice name="religion" label={reg("religion")} options={religionOptions} value={patient.religion} onChange={handleChange} text={reg} columns="choice-grid-four" />
+            </FieldPanel>
+            <FieldPanel>
+              <SingleChoice name="socioeconomicStatus" label={reg("socioeconomicStatus")} options={socioeconomicOptions} value={patient.socioeconomicStatus} onChange={handleChange} text={reg} />
+            </FieldPanel>
+
+            <FieldPanel wide>
               <fieldset className="field">
-                <span>{pf("patientForm.educationalQualification")}</span>
+                <span>{reg("educationStatus")}</span>
                 <div className="choice-grid choice-grid-three">
                   {educationalQualificationOptions.map((item) => (
                     <label key={item} className="choice-item">
@@ -244,12 +312,37 @@ export default function PatientFormPage({ patient, setPatient, onSessionStart })
                 ) : null}
               </fieldset>
             </FieldPanel>
+            <FieldPanel wide>
+              <fieldset className="field">
+                <span>{reg("dietaryPattern")}</span>
+                <div className="choice-grid choice-grid-three">
+                  {[...dietOptions, ...(patient.dietType === "nonVegetarian" ? ["nonVegetarian"] : [])].map((item) => (
+                    <label key={item} className="choice-item">
+                      <input type="radio" name="dietType" value={item} checked={patient.dietType === item} onChange={handleChange} />
+                      <span>{pf(`patientForm.options.${item}`)}</span>
+                    </label>
+                  ))}
+                </div>
+                {errors.dietType ? <small className="error-text">{errors.dietType}</small> : null}
+              </fieldset>
+            </FieldPanel>
+            <FieldPanel wide>
+              <MultiChoice
+                name="habits"
+                label={reg("habits")}
+                options={habitOptions}
+                values={(patient.habits || []).map((item) => item === "tobacco" ? "tobacco_chewing" : item)}
+                onChange={handleCheckboxGroupChange}
+                text={(key) => ["options.none", "options.tobacco_chewing", "options.alcohol", "options.smoking"].includes(key) ? reg(key) : pf(`patientForm.${key}`)}
+                columns="choice-grid-four"
+              />
+            </FieldPanel>
           </div>
         </SectionCard>
 
         <SectionCard
-          title={pf("patientForm.healthStatusTitle")}
-          helpText={pf("patientForm.healthStatusHelp")}
+          title={reg("clinicalTitle")}
+          helpText={reg("clinicalHelp")}
         >
           <div className="form-section-grid">
             <FieldPanel>
@@ -273,17 +366,37 @@ export default function PatientFormPage({ patient, setPatient, onSessionStart })
               </fieldset>
             </FieldPanel>
 
+            <FieldPanel wide>
+              <SingleChoice name="cldEtiology" label={reg("cldEtiology")} options={cldEtiologyOptions} value={patient.cldEtiology} onChange={handleChange} text={reg} />
+              {patient.cldEtiology === "etiology_other" ? <label className="field mt-3"><span>{reg("etiologyOther")}</span><input name="cldEtiologyOther" value={patient.cldEtiologyOther} onChange={handleChange} /></label> : null}
+            </FieldPanel>
+            <FieldPanel wide>
+              <SingleChoice name="cldStage" label={reg("cldStage")} options={cldStageOptions} value={patient.cldStage} onChange={handleChange} text={reg} />
+              {patient.cldStage === "stage_other" ? <label className="field mt-3"><span>{reg("stageOther")}</span><input name="cldStageOther" value={patient.cldStageOther} onChange={handleChange} /></label> : null}
+            </FieldPanel>
+            <FieldPanel wide>
+              <MultiChoice name="comorbidities" label={reg("comorbidities")} options={comorbidityOptions} values={patient.comorbidities} onChange={handleCheckboxGroupChange} text={reg} />
+              {patient.comorbidities.includes("comorbidity_other") ? <label className="field mt-3"><span>{reg("comorbiditiesOther")}</span><input name="comorbiditiesOther" value={patient.comorbiditiesOther} onChange={handleChange} /></label> : null}
+            </FieldPanel>
             <FieldPanel>
-              <label className="field">
-                <span>{pf("patientForm.illnessDuration")}</span>
-                <input
-                  type="text"
-                  name="illnessDuration"
-                  value={patient.illnessDuration}
-                  onChange={handleChange}
-                  placeholder={pf("patientForm.illnessDurationPlaceholder")}
-                />
-              </label>
+              <SingleChoice name="sarcopeniaDuration" label={reg("sarcopeniaDuration")} options={sarcopeniaDurationOptions} value={patient.sarcopeniaDuration} onChange={handleChange} text={reg} />
+            </FieldPanel>
+            <FieldPanel wide>
+              <SingleChoice name="cldTreatment" label={reg("cldTreatment")} options={cldTreatmentOptions} value={patient.cldTreatment} onChange={handleChange} text={reg} />
+              {patient.cldTreatment === "treatment_other" ? <label className="field mt-3"><span>{reg("treatmentOther")}</span><input name="cldTreatmentOther" value={patient.cldTreatmentOther} onChange={handleChange} /></label> : null}
+            </FieldPanel>
+            <FieldPanel>
+              <SingleChoice name="hospitalizationHistory" label={reg("hospitalizationHistory")} options={hospitalizationOptions} value={patient.hospitalizationHistory} onChange={handleChange} text={reg} />
+            </FieldPanel>
+            <FieldPanel>
+              <SingleChoice name="nutritionalCounselling" label={reg("nutritionalCounselling")} options={counsellingOptions} value={patient.nutritionalCounselling} onChange={handleChange} text={reg} />
+            </FieldPanel>
+            <FieldPanel wide>
+              <SingleChoice name="previousHealthEducation" label={reg("previousEducation")} options={previousEducationOptions} value={patient.previousHealthEducation} onChange={handleChange} text={reg} />
+            </FieldPanel>
+
+            <FieldPanel wide>
+              <SingleChoice name="cldDuration" label={reg("cldDuration")} options={cldDurationOptions} value={patient.cldDuration} onChange={handleChange} text={reg} />
             </FieldPanel>
 
             <FieldPanel>
@@ -336,27 +449,6 @@ export default function PatientFormPage({ patient, setPatient, onSessionStart })
 
         <SectionCard title={pf("patientForm.dietTitle")} helpText={pf("patientForm.dietHelp")}>
           <div className="form-section-grid">
-            <FieldPanel>
-              <fieldset className="field">
-                <span>{pf("patientForm.dietType")}</span>
-                <div className="choice-grid choice-grid-three">
-                  {dietOptions.map((item) => (
-                    <label key={item} className="choice-item">
-                      <input
-                        type="radio"
-                        name="dietType"
-                        value={item}
-                        checked={patient.dietType === item}
-                        onChange={handleChange}
-                      />
-                      <span>{pf(`patientForm.options.${item}`)}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.dietType ? <small className="error-text">{errors.dietType}</small> : null}
-              </fieldset>
-            </FieldPanel>
-
             <FieldPanel>
               <fieldset className="field">
                 <span>{pf("patientForm.appetiteLevel")}</span>
@@ -496,31 +588,6 @@ export default function PatientFormPage({ patient, setPatient, onSessionStart })
                       checked={patient.symptoms.includes(item)}
                       onChange={(event) =>
                         handleCheckboxGroupChange("symptoms", item, event.target.checked)
-                      }
-                    />
-                    <span>{pf(`patientForm.options.${item}`)}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-          </FieldPanel>
-        </SectionCard>
-
-        <SectionCard
-          title={pf("patientForm.lifestyleTitle")}
-          helpText={pf("patientForm.lifestyleHelp")}
-        >
-          <FieldPanel>
-            <fieldset className="field">
-              <span>{pf("patientForm.habits")}</span>
-              <div className="choice-grid choice-grid-three">
-                {habitOptions.map((item) => (
-                  <label key={item} className="choice-item">
-                    <input
-                      type="checkbox"
-                      checked={patient.habits.includes(item)}
-                      onChange={(event) =>
-                        handleCheckboxGroupChange("habits", item, event.target.checked)
                       }
                     />
                     <span>{pf(`patientForm.options.${item}`)}</span>

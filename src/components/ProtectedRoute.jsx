@@ -1,9 +1,13 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
-export default function ProtectedRoute({ allowedRoles = [], redirectTo = "/" }) {
+export default function ProtectedRoute({
+  allowedRoles = [],
+  redirectTo = "/",
+  requireAdminReauth = false,
+}) {
   const location = useLocation();
-  const { isAuthenticated, hasRole, isLoading } = useAuth();
+  const { isAuthenticated, hasRole, isLoading, adminReauthenticated } = useAuth();
 
   if (isLoading) {
     return (
@@ -22,6 +26,10 @@ export default function ProtectedRoute({ allowedRoles = [], redirectTo = "/" }) 
   if (allowedRoles.length && !hasRole(allowedRoles)) {
     const nextPath = "/";
     return <Navigate to={nextPath} replace state={{ from: location.pathname }} />;
+  }
+
+  if (requireAdminReauth && !adminReauthenticated) {
+    return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />;
   }
 
   return <Outlet />;

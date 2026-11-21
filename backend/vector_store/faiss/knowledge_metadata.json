@@ -224,6 +224,13 @@
     "content": "Patients should ask for medical guidance if weakness worsens, appetite falls, exercise feels unsafe, or symptoms change suddenly."
   },
   {
+    "chunk_id": "kb_0033_01",
+    "topic": "safety",
+    "subtopic": "education_only",
+    "source": "QUESTIONNAIRES.docx",
+    "content": "This chatbot is for education and support. It should not be used to make diagnosis or medicine changes."
+  },
+  {
     "chunk_id": "kb_0034_01",
     "topic": "safety",
     "subtopic": "patient_specific_plan",

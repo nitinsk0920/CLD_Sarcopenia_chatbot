@@ -17,12 +17,17 @@ export default function ChatbotAnswerCard({
   return (
     <article className="bubble bubble-bot bubble-rich" data-chat-message>
       <p className="bubble-text">{text}</p>
-      <div className="answer-actions">
-        <button type="button" className="btn btn-secondary btn-audio" onClick={onPlayAudio}>
+      <footer className="answer-actions" aria-label="Answer controls">
+        <button
+          type="button"
+          className="btn btn-secondary btn-audio"
+          onClick={onPlayAudio}
+          aria-label={isPlayingAudio ? t("course.module.playingAudio") : t("course.module.playAudio")}
+        >
           {isPlayingAudio ? t("course.module.playingAudio") : t("course.module.playAudio")}
         </button>
         {topicLabel ? <span className="topic-chip">{topicLabel}</span> : null}
-      </div>
+      </footer>
       {imageUrl ? (
         <img className="answer-image" src={imageUrl} alt={`${topicLabel || "Education"} visual`} />
       ) : showMedia && topic && import.meta.env.DEV ? (

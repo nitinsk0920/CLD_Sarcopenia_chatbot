@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from datetime import timezone
 from typing import Any
@@ -22,6 +23,291 @@ class ReportService:
     @staticmethod
     def _habit_text(enabled: bool) -> str:
         return "yes" if enabled else "no"
+
+    def has_active_session(self, session_id: str, *, admin_id: int) -> bool:
+        row = self.db.execute(text("""
+            SELECT id
+            FROM patient_sessions
+            WHERE id = CAST(:session_id AS uuid)
+              AND admin_id = :admin_id
+              AND status = 'active'
+            LIMIT 1
+        """), {"session_id": session_id, "admin_id": admin_id}).first()
+        return row is not None
+
+    def get_active_session_profile(
+        self,
+        session_id: str,
+        *,
+        admin_id: int,
+    ) -> dict[str, Any] | None:
+        """Return the saved profile only for this admin's active, patient-linked session."""
+        row = (
+            self.db.execute(
+                text(
+                    """
+                    SELECT
+                        ps.draft_profile,
+                        p.patient_code,
+                        p.age,
+                        p.gender,
+                        p.educational_qualification,
+                        p.occupation,
+                        p.diet_type,
+                        p.alcohol_habit,
+                        p.smoking_habit,
+                        p.language,
+                        p.cld_status,
+                        p.exercise_habit,
+                        p.symptoms
+                    FROM patient_sessions ps
+                    JOIN patients p ON p.id = ps.patient_id
+                                    AND p.admin_id = ps.admin_id
+                    WHERE ps.id = CAST(:session_id AS uuid)
+                      AND ps.admin_id = :admin_id
+                      AND ps.status = 'active'
+                    LIMIT 1
+                    """
+                ),
+                {"session_id": session_id, "admin_id": admin_id},
+            )
+            .mappings()
+            .first()
+        )
+        if row is None:
+            return None
+
+        draft_profile = row.get("draft_profile")
+        if isinstance(draft_profile, str):
+            try:
+                draft_profile = json.loads(draft_profile)
+            except (TypeError, ValueError):
+                draft_profile = None
+
+        if isinstance(draft_profile, dict):
+            draft_fields = draft_profile.get("fields", draft_profile)
+            profile = dict(draft_fields) if isinstance(draft_fields, dict) else {}
+        else:
+            profile = {}
+
+        patient_fields = {
+            "age": row.get("age"),
+            "gender": row.get("gender"),
+            "educationalQualification": row.get("educational_qualification"),
+            "occupation": row.get("occupation"),
+            "dietType": row.get("diet_type"),
+            "languagePreference": row.get("language"),
+            "cldStatus": row.get("cld_status"),
+            "exerciseRegular": row.get("exercise_habit"),
+            "symptoms": row.get("symptoms"),
+        }
+        habits = [
+            name
+            for name, value in (
+                ("alcohol", row.get("alcohol_habit")),
+                ("smoking", row.get("smoking_habit")),
+            )
+            if str(value or "").strip().lower() in {"yes", "true", "1"}
+        ]
+        if habits:
+            patient_fields["habits"] = habits
+
+        for key, value in patient_fields.items():
+            if value not in (None, "", []) and profile.get(key) in (None, "", []):
+                profile[key] = value
+
+        return profile or None
+
+    def get_active_session_state(
+        self,
+        session_id: str,
+        *,
+        admin_id: int,
+    ) -> dict[str, Any] | None:
+        row = (
+            self.db.execute(
+                text(
+                    """
+                    SELECT started_at
+                    FROM patient_sessions
+                    WHERE id = CAST(:session_id AS uuid)
+                      AND admin_id = :admin_id
+                      AND status = 'active'
+                    LIMIT 1
+                    """
+                ),
+                {"session_id": session_id, "admin_id": admin_id},
+            )
+            .mappings()
+            .first()
+        )
+        if row is None:
+            return None
+        profile = self.get_active_session_profile(session_id, admin_id=admin_id)
+        if profile is None:
+            return None
+        return {"session_id": session_id, "started_at": row.get("started_at"), "patient": profile}
+
+    def start_draft_session(
+        self,
+        session_id: str,
+        payload: PatientProfilePayload,
+        *,
+        admin_id: int,
+        started_at: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Persist a draft on an admin-owned active session without replacing saved patients."""
+        started_at = self._ensure_aware_datetime(started_at or datetime.now(timezone.utc))
+        draft_json = json.dumps({"fields": payload.model_dump(exclude_none=True)})
+        existing = (
+            self.db.execute(
+                text(
+                    """
+                    SELECT admin_id, patient_id, status
+                    FROM patient_sessions
+                    WHERE id = CAST(:session_id AS uuid)
+                    LIMIT 1
+                    """
+                ),
+                {"session_id": session_id},
+            )
+            .mappings()
+            .first()
+        )
+        if existing is not None:
+            if int(existing["admin_id"]) != admin_id:
+                raise ValueError("This session belongs to another hospital account.")
+            if existing.get("status") != "active":
+                raise ValueError("This patient session is no longer active.")
+            self.db.execute(
+                text(
+                    """
+                    UPDATE patient_sessions
+                    SET draft_profile = CAST(:draft_profile AS jsonb),
+                        selected_language = :selected_language,
+                        updated_at = :updated_at
+                    WHERE id = CAST(:session_id AS uuid) AND admin_id = :admin_id
+                    """
+                ),
+                {
+                    "session_id": session_id,
+                    "admin_id": admin_id,
+                    "draft_profile": draft_json,
+                    "selected_language": payload.languagePreference,
+                    "updated_at": datetime.now(timezone.utc),
+                },
+            )
+            return {"session_id": session_id, "patient_id": payload.patientId}
+
+        patient_row = (
+            self.db.execute(
+                text(
+                    """
+                    SELECT id
+                    FROM patients
+                    WHERE admin_id = :admin_id AND patient_code = :patient_code
+                    LIMIT 1
+                    """
+                ),
+                {"admin_id": admin_id, "patient_code": payload.patientId},
+            )
+            .mappings()
+            .first()
+        )
+        if patient_row is None:
+            placeholder_code = f"__draft__:{session_id}"
+            patient_id = self.db.execute(
+                text(
+                    """
+                    INSERT INTO patients (admin_id, patient_code, created_at, updated_at)
+                    VALUES (:admin_id, :patient_code, :created_at, :updated_at)
+                    RETURNING id
+                    """
+                ),
+                {
+                    "admin_id": admin_id,
+                    "patient_code": placeholder_code,
+                    "created_at": started_at,
+                    "updated_at": started_at,
+                },
+            ).scalar_one()
+        else:
+            patient_id = patient_row["id"]
+
+        self.db.execute(
+            text(
+                """
+                INSERT INTO patient_sessions (
+                    id, admin_id, patient_id, status, selected_language,
+                    draft_profile, started_at, updated_at
+                )
+                VALUES (
+                    CAST(:session_id AS uuid), :admin_id, :patient_id, 'active',
+                    :selected_language, CAST(:draft_profile AS jsonb), :started_at, :updated_at
+                )
+                """
+            ),
+            {
+                "session_id": session_id,
+                "admin_id": admin_id,
+                "patient_id": patient_id,
+                "selected_language": payload.languagePreference,
+                "draft_profile": draft_json,
+                "started_at": started_at,
+                "updated_at": datetime.now(timezone.utc),
+            },
+        )
+        return {"session_id": session_id, "patient_id": payload.patientId}
+
+    def discard_draft_session(self, session_id: str, *, admin_id: int) -> bool:
+        row = (
+            self.db.execute(
+                text(
+                    """
+                    SELECT ps.patient_id, p.patient_code
+                    FROM patient_sessions ps
+                    JOIN patients p ON p.id = ps.patient_id AND p.admin_id = ps.admin_id
+                    WHERE ps.id = CAST(:session_id AS uuid)
+                      AND ps.admin_id = :admin_id
+                      AND ps.status = 'active'
+                    LIMIT 1
+                    """
+                ),
+                {"session_id": session_id, "admin_id": admin_id},
+            )
+            .mappings()
+            .first()
+        )
+        if row is None:
+            return False
+
+        self.db.execute(
+            text(
+                """
+                DELETE FROM patient_sessions
+                WHERE id = CAST(:session_id AS uuid) AND admin_id = :admin_id AND status = 'active'
+                """
+            ),
+            {"session_id": session_id, "admin_id": admin_id},
+        )
+        if row.get("patient_code") == f"__draft__:{session_id}":
+            self.db.execute(
+                text(
+                    """
+                    DELETE FROM patients p
+                    WHERE p.id = :patient_id AND p.admin_id = :admin_id
+                      AND p.patient_code = :placeholder_code
+                      AND NOT EXISTS (SELECT 1 FROM patient_sessions ps WHERE ps.patient_id = p.id)
+                      AND NOT EXISTS (SELECT 1 FROM patient_reports pr WHERE pr.patient_id = p.id)
+                    """
+                ),
+                {
+                    "patient_id": row["patient_id"],
+                    "admin_id": admin_id,
+                    "placeholder_code": f"__draft__:{session_id}",
+                },
+            )
+        return True
 
     def create_patient_record(self, payload: PatientProfilePayload, *, admin_id: int) -> dict[str, Any]:
         patient_id = self._get_or_create_patient_for_report(payload, admin_id=admin_id)
@@ -456,13 +742,12 @@ class ReportService:
         )
         weak_topics = payload.pre_test.weak_topics or []
         selected_language = payload.patient.languagePreference
-        chat_summary = payload.short_chat_summary.strip()
 
         existing = (
             self.db.execute(
                 text(
                     """
-                    SELECT id
+                    SELECT id, admin_id
                     FROM patient_sessions
                     WHERE id = CAST(:session_id AS uuid)
                     LIMIT 1
@@ -480,13 +765,16 @@ class ReportService:
             "patient_id": patient_id,
             "status": payload.completion_status,
             "selected_language": selected_language,
-            "chat_summary": chat_summary,
+            "draft_profile": json.dumps({"fields": payload.patient.model_dump(exclude_none=True)}),
             "learning_summary": learning_summary,
             "weak_topics": weak_topics,
             "started_at": started_at,
             "ended_at": ended_at,
             "updated_at": datetime.now(timezone.utc),
         }
+
+        if existing is not None and int(existing["admin_id"]) != admin_id:
+            raise ValueError("This session belongs to another hospital account.")
 
         if existing is None:
             self.db.execute(
@@ -498,7 +786,7 @@ class ReportService:
                         patient_id,
                         status,
                         selected_language,
-                        chat_summary,
+                        draft_profile,
                         learning_summary,
                         weak_topics,
                         started_at,
@@ -511,7 +799,7 @@ class ReportService:
                         :patient_id,
                         :status,
                         :selected_language,
-                        :chat_summary,
+                        CAST(:draft_profile AS jsonb),
                         :learning_summary,
                         :weak_topics,
                         :started_at,
@@ -528,11 +816,10 @@ class ReportService:
                     """
                     UPDATE patient_sessions
                     SET
-                        admin_id = :admin_id,
                         patient_id = :patient_id,
                         status = :status,
                         selected_language = :selected_language,
-                        chat_summary = :chat_summary,
+                        draft_profile = CAST(:draft_profile AS jsonb),
                         learning_summary = :learning_summary,
                         weak_topics = :weak_topics,
                         started_at = COALESCE(started_at, :started_at),
@@ -610,7 +897,6 @@ class ReportService:
             "pre_score_level": payload.pre_test.score_level,
             "post_score_level": payload.post_test.score_level,
             "weak_topics": payload.pre_test.weak_topics or [],
-            "chat_summary": payload.short_chat_summary.strip(),
             "learning_summary": learning_summary,
             "completion_status": payload.completion_status,
             "updated_at": datetime.now(timezone.utc),
@@ -647,7 +933,6 @@ class ReportService:
                             pre_score_level,
                             post_score_level,
                             weak_topics,
-                            chat_summary,
                             learning_summary,
                             completion_status,
                             created_at,
@@ -678,7 +963,6 @@ class ReportService:
                             :pre_score_level,
                             :post_score_level,
                             :weak_topics,
-                            :chat_summary,
                             :learning_summary,
                             :completion_status,
                             :created_at,
@@ -723,7 +1007,6 @@ class ReportService:
                     pre_score_level = :pre_score_level,
                     post_score_level = :post_score_level,
                     weak_topics = :weak_topics,
-                    chat_summary = :chat_summary,
                     learning_summary = :learning_summary,
                     completion_status = :completion_status,
                     updated_at = :updated_at
@@ -881,7 +1164,6 @@ class ReportService:
                         pr.pre_score_level,
                         pr.post_score_level,
                         pr.weak_topics,
-                        pr.chat_summary,
                         pr.learning_summary,
                         pr.completion_status,
                         pr.pdf_path,
@@ -889,6 +1171,7 @@ class ReportService:
                         pr.updated_at,
                         ps.status AS session_status,
                         ps.selected_language,
+                        ps.draft_profile,
                         ps.started_at,
                         ps.ended_at
                     FROM patient_reports pr
@@ -960,26 +1243,59 @@ class ReportService:
                 answers_by_attempt_id.setdefault(answer["quiz_attempt_id"], []).append(dict(answer))
 
         attempt_by_type = {attempt["quiz_type"]: dict(attempt) for attempt in attempts}
+        draft = report.get("draft_profile")
+        if isinstance(draft, str):
+            try:
+                draft = json.loads(draft)
+            except (TypeError, ValueError):
+                draft = None
+        draft_fields = draft.get("fields", draft) if isinstance(draft, dict) else {}
+        draft_fields = draft_fields if isinstance(draft_fields, dict) else {}
+
+        patient_detail = {
+            "patient_id": report["patient_code"],
+            "patient_code": report["patient_code"],
+            "patient_db_id": report["patient_id"],
+            "age": report["age"],
+            "gender": report["gender"],
+            "educational_qualification": report["educational_qualification"],
+            "occupation": report["occupation"],
+            "diet_type": report["diet_type"],
+            "alcohol_habit": report["alcohol_habit"],
+            "smoking_habit": report["smoking_habit"],
+            "language": report["language"],
+            "selected_language": report["selected_language"] or report["language"],
+            "cld_status": report["cld_status"],
+            "exercise_habit": report["exercise_habit"],
+            "symptoms": report["symptoms"] or [],
+        }
+        patient_detail.update({
+            key: draft_fields.get(key)
+            for key in (
+                "ageGroup", "maritalStatus", "familyType", "residence", "religion",
+                "socioeconomicStatus", "cldDuration", "cldEtiology", "cldEtiologyOther",
+                "cldStage", "cldStageOther", "comorbidities", "comorbiditiesOther",
+                "sarcopeniaDuration", "cldTreatment", "cldTreatmentOther",
+                "hospitalizationHistory", "nutritionalCounselling", "previousHealthEducation",
+                "habits", "appetiteLevel", "proteinAwareness", "exerciseType",
+                "exerciseFrequency", "weaknessFatigue", "recentWeightLoss", "digitalLiteracy",
+            )
+        })
+        if patient_detail.get("habits") in (None, ""):
+            legacy_habits = []
+            if str(report.get("alcohol_habit") or "").strip().lower() in {"yes", "true", "1"}:
+                legacy_habits.append("alcohol")
+            if str(report.get("smoking_habit") or "").strip().lower() in {"yes", "true", "1"}:
+                legacy_habits.append("smoking")
+            if legacy_habits:
+                patient_detail["habits"] = legacy_habits
+            elif report.get("alcohol_habit") is not None and report.get("smoking_habit") is not None:
+                patient_detail["habits"] = ["none"]
+
         return AdminReportDetail(
             report_id=str(report["id"]),
             session_id=str(report["session_id"]),
-            patient={
-                "patient_id": report["patient_code"],
-                "patient_code": report["patient_code"],
-                "patient_db_id": report["patient_id"],
-                "age": report["age"],
-                "gender": report["gender"],
-                "educational_qualification": report["educational_qualification"],
-                "occupation": report["occupation"],
-                "diet_type": report["diet_type"],
-                "alcohol_habit": report["alcohol_habit"],
-                "smoking_habit": report["smoking_habit"],
-                "language": report["language"],
-                "selected_language": report["selected_language"] or report["language"],
-                "cld_status": report["cld_status"],
-                "exercise_habit": report["exercise_habit"],
-                "symptoms": report["symptoms"] or [],
-            },
+            patient=patient_detail,
             session={
                 "session_id": str(report["session_id"]),
                 "session_start_time": report["session_started_at"] or report["started_at"],
@@ -987,7 +1303,6 @@ class ReportService:
                 "session_duration_minutes": report["session_duration_minutes"],
                 "completion_status": report["completion_status"],
                 "status": report["session_status"] or report["completion_status"],
-                "short_chat_summary": report["chat_summary"],
                 "learning_summary": report["learning_summary"],
             },
             report={
@@ -999,7 +1314,6 @@ class ReportService:
                 "post_score_level": report["post_score_level"],
                 "weak_topics": report["weak_topics"] or [],
                 "strong_topics": [],
-                "short_chat_summary": report["chat_summary"],
                 "learning_summary": report["learning_summary"],
                 "completion_status": report["completion_status"],
                 "pdf_path": report["pdf_path"],

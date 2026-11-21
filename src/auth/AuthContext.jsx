@@ -32,6 +32,7 @@ function buildSession(token, subscription = null) {
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
+  const [adminReauthenticated, setAdminReauthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState("");
 
@@ -87,6 +88,7 @@ export function AuthProvider({ children }) {
     function handleAuthExpired(event) {
       clearStoredAuthSession();
       setSession(null);
+      setAdminReauthenticated(false);
       setAuthError(event.detail?.message || "Your session has expired. Please sign in again.");
       setIsLoading(false);
     }
@@ -149,7 +151,16 @@ export function AuthProvider({ children }) {
   function logout() {
     clearStoredAuthSession();
     setAuthError("");
+    setAdminReauthenticated(false);
     setSession(null);
+  }
+
+  function markAdminReauthenticated() {
+    setAdminReauthenticated(true);
+  }
+
+  function clearAdminReauthentication() {
+    setAdminReauthenticated(false);
   }
 
   function clearAuthError() {
@@ -170,14 +181,17 @@ export function AuthProvider({ children }) {
       subscription: session?.subscription || null,
       isAuthenticated: Boolean(session?.token),
       isAdmin: session?.role === "admin",
+      adminReauthenticated,
       isLoading,
       authError,
       login,
       logout,
+      markAdminReauthenticated,
+      clearAdminReauthentication,
       hasRole,
       clearAuthError,
     }),
-    [authError, isLoading, session]
+    [adminReauthenticated, authError, isLoading, session]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

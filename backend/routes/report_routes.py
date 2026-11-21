@@ -14,12 +14,32 @@ from schemas.report_schemas import FinalReportSaveRequest
 from schemas.report_schemas import ReportSaveResponse
 from schemas.report_schemas import SessionEndRequest
 from schemas.report_schemas import SessionEndResponse
+from schemas.report_schemas import SessionResumeResponse
 from schemas.report_schemas import SessionStartRequest
 from schemas.report_schemas import SessionStartResponse
 from services.report_service import ReportService
 
 
 router = APIRouter(tags=["reports"])
+
+
+@router.get("/session/{session_id}/resume", response_model=SessionResumeResponse)
+def resume_session(
+    session_id: str,
+    current_admin: HospitalAdmin = Depends(get_current_active_admin),
+) -> SessionResumeResponse:
+    try:
+        with db_session_scope() as db:
+            state = ReportService(db).get_active_session_state(
+                session_id, admin_id=current_admin.id
+            )
+            if state is None:
+                raise HTTPException(status_code=404, detail="Active patient session was not found.")
+            return SessionResumeResponse(**state)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Active patient session was not found.") from exc
 
 
 @router.post("/session/start", response_model=SessionStartResponse)
@@ -30,20 +50,21 @@ def start_session(
     try:
         with db_session_scope() as db:
             service = ReportService(db)
-            patient = service.create_patient_record(payload.patient, admin_id=current_admin.id)
-            session_record = service.create_session(
+            session_record = service.start_draft_session(
                 payload.session_id,
-                patient,
+                payload.patient,
                 admin_id=current_admin.id,
                 started_at=payload.started_at,
             )
             return SessionStartResponse(
                 session_id=str(session_record["session_id"]),
-                patient_id=str(patient["patient_id"]),
+                patient_id=str(session_record["patient_id"]),
                 status="started",
             )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.post("/session/end", response_model=SessionEndResponse)

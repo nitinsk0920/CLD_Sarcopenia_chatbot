@@ -16,8 +16,63 @@ function formatDateTime(value) {
 }
 
 function formatList(values) {
-  if (!values?.length) return "None";
-  return values.join(", ");
+  if (!values?.length) return "Not recorded";
+  return values.map(formatValue).join(", ");
+}
+
+const readableValues = {
+  en: "English", hi: "Hindi", kn: "Kannada", mr: "Marathi", notSure: "Not sure",
+  cld: "Chronic Liver Disease", sarcopenia: "Sarcopenia", diet: "Diet and nutrition", exercise: "Exercise and movement", safety: "Safety",
+  beginner: "Beginner", developing: "Developing", good: "Good", excellent: "Excellent",
+  age_18_30: "18–30 years", age_31_45: "31–45 years", age_46_60: "46–60 years", age_61_plus: "61 years and above",
+  male: "Male", female: "Female", other: "Other", married: "Married", unmarried: "Unmarried", widowed: "Widowed", divorced_separated: "Divorced / Separated",
+  noFormalEducation: "No formal education", primaryEducation: "Primary education", secondaryEducation: "Secondary education", higherSecondary: "Higher secondary", graduateAndAbove: "Graduate and above",
+  employed: "Employed", unemployed: "Unemployed", homemaker: "Homemaker", retired: "Retired", nuclear: "Nuclear", joint: "Joint", extended: "Extended", rural: "Rural", urban: "Urban", hindu: "Hindu", muslim: "Muslim", christian: "Christian", religion_other: "Other", socioeconomic_lower: "Lower", socioeconomic_middle: "Middle", socioeconomic_upper: "Upper",
+  vegetarian: "Vegetarian", mixed: "Mixed (vegetarian and non-vegetarian)", nonVegetarian: "Non-vegetarian (legacy response)", alcohol: "Alcohol consumption", smoking: "Smoking", tobacco: "Tobacco chewing", tobacco_chewing: "Tobacco chewing", none: "None",
+  less_than_1_year: "Less than 1 year", one_to_five_years: "1–5 years", six_to_ten_years: "6–10 years", more_than_10_years: "More than 10 years",
+  alcohol_related: "Alcohol-related liver disease", viral_hepatitis: "Viral hepatitis (Hepatitis B/C)", fatty_liver: "Fatty liver disease (MASLD/MASH)", etiology_other: "Other documented cause",
+  compensated_cirrhosis: "Compensated cirrhosis", decompensated_cirrhosis: "Decompensated cirrhosis", stage_other: "Other documented CLD stage", not_documented: "Not documented / unknown",
+  diabetes: "Diabetes mellitus", hypertension: "Hypertension", comorbidity_other: "Other comorbidity", no_known_comorbidities: "No known comorbidities",
+  less_than_6_months: "Less than 6 months", six_to_twelve_months: "6–12 months", more_than_1_year: "More than 1 year",
+  medical_management_only: "Medical management only", medical_nutrition: "Medical management with nutritional supplementation", treatment_other: "Other treatment", complications_management: "Management of CLD complications",
+  never: "Never", once: "Once", twice: "Twice", three_or_more: "Three or more times", yes: "Yes", no: "No", not_sure: "Not sure",
+  education_none: "No previous education", education_cld: "Education about CLD only", education_sarcopenia: "Education about sarcopenia only", education_both: "Education about both CLD and sarcopenia",
+};
+
+function formatValue(value) {
+  if (value === null || value === undefined || value === "") return "Not recorded";
+  if (Array.isArray(value)) return value.length ? value.map(formatValue).join(", ") : "Not recorded";
+  return readableValues[value] || String(value).replaceAll("_", " ");
+}
+
+const socioFields = [
+  ["Age group", "ageGroup"], ["Gender", "gender"], ["Marital status", "maritalStatus"],
+  ["Educational status", "educational_qualification"], ["Occupation", "occupation"],
+  ["Type of family", "familyType"], ["Place of residence", "residence"], ["Religion", "religion"],
+  ["Dietary pattern", "diet_type"], ["Habits", "habits"], ["Socioeconomic status", "socioeconomicStatus"],
+];
+const clinicalFields = [
+  ["CLD duration", "cldDuration"], ["CLD etiology", "cldEtiology", "cldEtiologyOther"],
+  ["CLD stage", "cldStage", "cldStageOther"], ["Comorbidities", "comorbidities", "comorbiditiesOther"],
+  ["Sarcopenia duration", "sarcopeniaDuration"], ["Current CLD treatment", "cldTreatment", "cldTreatmentOther"],
+  ["Hospitalizations due to CLD", "hospitalizationHistory"], ["Nutritional counselling", "nutritionalCounselling"],
+  ["Previous health education", "previousHealthEducation"],
+];
+
+function ProfileSection({ title, fields, patient }) {
+  return (
+    <div className="rounded-xl border border-hospital-200 bg-white p-4">
+      <p className="font-semibold text-hospital-900">{title}</p>
+      <div className="mt-3 grid gap-2 text-sm text-hospital-800 sm:grid-cols-2">
+        {fields.map(([label, key, detailKey]) => {
+          const value = patient[key];
+          const detail = detailKey ? patient[detailKey] : "";
+          const rendered = key === "habits" || key === "comorbidities" ? formatList(value) : formatValue(value);
+          return <p key={key}><strong>{label}:</strong> {detail ? `${rendered} — ${detail}` : rendered}</p>;
+        })}
+      </div>
+    </div>
+  );
 }
 
 function ReportDetailCard({ detail, onDownload, downloading }) {
@@ -42,40 +97,53 @@ function ReportDetailCard({ detail, onDownload, downloading }) {
         </button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4">
         <div className="rounded-xl border border-hospital-200 bg-white p-4">
           <p className="font-semibold text-hospital-900">Patient Information</p>
           <div className="mt-3 grid gap-2 text-sm text-hospital-800">
             <p><strong>Patient ID:</strong> {detail.patient.patient_id}</p>
-            <p><strong>Age:</strong> {detail.patient.age || "-"}</p>
-            <p><strong>Gender:</strong> {detail.patient.gender || "-"}</p>
-            <p><strong>Educational Qualification:</strong> {detail.patient.educational_qualification || "-"}</p>
-            <p><strong>Occupation:</strong> {detail.patient.occupation || "-"}</p>
-            <p><strong>Language:</strong> {detail.patient.language || "-"}</p>
-            <p><strong>Diet Type:</strong> {detail.patient.diet_type || "-"}</p>
-            <p><strong>Alcohol Habit:</strong> {detail.patient.alcohol_habit || "-"}</p>
-            <p><strong>Smoking Habit:</strong> {detail.patient.smoking_habit || "-"}</p>
-            <p><strong>CLD with Sarcopenia:</strong> {detail.patient.cld_status || "-"}</p>
-            <p><strong>Exercise Habit:</strong> {detail.patient.exercise_habit || "-"}</p>
+            <p><strong>Patient ID:</strong> {detail.patient.patient_id}</p>
+            <p><strong>Recorded age (legacy):</strong> {formatValue(detail.patient.age)}</p>
+            <p><strong>Language:</strong> {formatValue(detail.patient.language)}</p>
+            <p><strong>CLD with Sarcopenia:</strong> {formatValue(detail.patient.cld_status)}</p>
+            <p><strong>Exercise habit:</strong> {formatValue(detail.patient.exercise_habit)}</p>
             <p><strong>Symptoms:</strong> {formatList(detail.patient.symptoms)}</p>
           </div>
         </div>
 
+        <ProfileSection title="Socio-Demographic Information" fields={socioFields} patient={detail.patient} />
+        <ProfileSection title="Clinical Information" fields={clinicalFields} patient={detail.patient} />
+
         <div className="rounded-xl border border-hospital-200 bg-white p-4">
           <p className="font-semibold text-hospital-900">Session and Score Summary</p>
           <div className="mt-3 grid gap-2 text-sm text-hospital-800">
+            <p><strong>Pre-test score:</strong> {detail.pre_test ? `${detail.pre_test.score} / ${detail.pre_test.total_questions}` : "Not recorded"}</p>
+            <p><strong>Post-test score:</strong> {detail.post_test ? `${detail.post_test.score} / ${detail.post_test.total_questions}` : "Not recorded"}</p>
+            <p><strong>Score improvement:</strong> {formatValue(detail.report.improvement)}</p>
+            <p><strong>Post-test performance level:</strong> {formatValue(detail.report.post_score_level)}</p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-hospital-200 bg-white p-4">
+          <p className="font-semibold text-hospital-900">Programme Completion</p>
+          <div className="mt-3 grid gap-2 text-sm text-hospital-800">
+            <p><strong>Status:</strong> {formatValue(detail.report.completion_status)}</p>
             <p><strong>Session start:</strong> {formatDateTime(detail.session.session_start_time)}</p>
             <p><strong>Session end:</strong> {formatDateTime(detail.session.session_end_time)}</p>
-            <p><strong>Completion status:</strong> {detail.report.completion_status}</p>
-            <p><strong>Pre-test score:</strong> {detail.report.pre_test_score ?? "-"}</p>
-            <p><strong>Post-test score:</strong> {detail.report.post_test_score ?? "-"}</p>
-            <p><strong>Improvement:</strong> {detail.report.improvement ?? 0}</p>
-            <p><strong>Score level:</strong> {detail.report.score_level || "-"}</p>
           </div>
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border border-hospital-200 bg-white p-4">
+          <p className="font-semibold text-hospital-900">Educational Improvement</p>
+          <p className="mt-3 text-sm text-hospital-800">
+            Pre-test {detail.report.pre_test_score ?? "Not recorded"} → Post-test {detail.report.post_test_score ?? "Not recorded"}
+          </p>
+          <p className="mt-2 text-sm text-hospital-800">
+            <strong>Weak topics requiring further education:</strong> {formatList(detail.report.weak_topics)}
+          </p>
+        </div>
         <div className="rounded-xl border border-hospital-200 bg-white p-4">
           <p className="font-semibold text-hospital-900">Learning Summary</p>
           <p className="mt-3 text-sm text-hospital-800">{detail.report.learning_summary || "No summary saved."}</p>
@@ -84,15 +152,6 @@ function ReportDetailCard({ detail, onDownload, downloading }) {
           </p>
         </div>
 
-        <div className="rounded-xl border border-hospital-200 bg-white p-4">
-          <p className="font-semibold text-hospital-900">Chat Summary</p>
-          <p className="mt-3 text-sm text-hospital-800">
-            <strong>Short chat summary:</strong> {detail.report.short_chat_summary || "No chat summary saved."}
-          </p>
-          <p className="mt-3 text-sm text-hospital-800">
-            <strong>Completion status:</strong> {detail.report.completion_status || "-"}
-          </p>
-        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

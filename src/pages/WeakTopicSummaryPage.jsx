@@ -3,7 +3,7 @@ import AppLayout from "../components/AppLayout";
 import { getReviewItems } from "../data/quizQuestions";
 import { useLanguage } from "../i18n/LanguageContext";
 
-export default function WeakTopicSummaryPage({ weakTopicSummary }) {
+export default function WeakTopicSummaryPage({ weakTopicSummary, onExitFlow }) {
   const { t, formatList, language } = useLanguage();
   const ranked = weakTopicSummary?.rankedWeakTopics || [];
   const reviewItems = getReviewItems(weakTopicSummary, language, "pre");
@@ -22,6 +22,7 @@ export default function WeakTopicSummaryPage({ weakTopicSummary }) {
       title={t("weakTopics.title")}
       subtitle={t("weakTopics.subtitle")}
       backTo="/pre-test"
+      onExitFlow={onExitFlow}
     >
       <div className="stack">
         <section className="question-card">

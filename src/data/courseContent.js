@@ -1,6 +1,6 @@
 import rawCourseText from "../../cld_sarcopenia_course_4_language.txt?raw";
 
-export const LEARNING_TOPIC_ORDER = ["cld", "sarcopenia", "diet", "exercise", "safety"];
+export const LEARNING_TOPIC_ORDER = ["introduction", "cld", "sarcopenia", "diet", "exercise", "safety"];
 
 const LANGUAGE_MARKERS = {
   ENGLISH: "en",
@@ -10,6 +10,11 @@ const LANGUAGE_MARKERS = {
 };
 
 const TOPIC_DEFINITIONS = [
+  {
+    id: "introduction",
+    titles: { en: "Introduction video", hi: "परिचय वीडियो", kn: "ಪರಿಚಯ ವೀಡಿಯೊ", mr: "परिचय व्हिडिओ" },
+    sourceTitles: [],
+  },
   {
     id: "cld",
     titles: {
@@ -179,7 +184,14 @@ export function getLearningTopics(language = "en") {
     return {
       id: topicDefinition.id,
       title: topicDefinition.titles[language] || topicDefinition.titles.en,
-      intro: createIntro(introParagraphs),
+      intro: topicDefinition.id === "introduction"
+        ? ({
+            en: "Begin the course with this short introduction, then continue through the learning topics.",
+            hi: "इस छोटे परिचय से पाठ्यक्रम शुरू करें, फिर आगे के विषयों को क्रम से देखें।",
+            kn: "ಈ ಚಿಕ್ಕ ಪರಿಚಯದೊಂದಿಗೆ ಕೋರ್ಸ್ ಪ್ರಾರಂಭಿಸಿ, ನಂತರ ವಿಷಯಗಳನ್ನು ಕ್ರಮವಾಗಿ ಮುಂದುವರಿಸಿ.",
+            mr: "या छोट्या परिचयाने अभ्यासक्रम सुरू करा आणि नंतर विषय क्रमाने पाहा.",
+          }[language] || "Begin the course with this short introduction, then continue through the learning topics.")
+        : createIntro(introParagraphs),
       sections: remainingSections,
       allSections: sections,
     };
@@ -200,5 +212,5 @@ export function getRecommendedLearningTopicId(weakTopicSummary) {
     .map((item) => WEAK_TOPIC_TO_LEARNING_TOPIC[item.topic])
     .find(Boolean);
 
-  return firstMatch || LEARNING_TOPIC_ORDER[0];
+  return firstMatch || "introduction";
 }

@@ -8,7 +8,7 @@ import { useLanguage } from "../i18n/LanguageContext";
 
 const learningLanguages = ["en", "hi", "kn", "mr"];
 
-export default function TeachingChatbotPage({ weakTopicSummary }) {
+export default function TeachingChatbotPage({ weakTopicSummary, onExitFlow }) {
   const { language, setLanguage, t } = useLanguage();
   const topics = getLearningTopics(language);
   const recommendedTopicId = getRecommendedLearningTopicId(weakTopicSummary);
@@ -21,6 +21,7 @@ export default function TeachingChatbotPage({ weakTopicSummary }) {
       title="Learning Hub"
       subtitle="Open one topic at a time. The text changes with your selected language, and your learning path stays simple from here."
       backTo="/weak-topic-learning"
+      onExitFlow={onExitFlow}
     >
       <div className="stack">
         <section className="rounded-2xl border border-hospital-200 bg-hospital-50 p-4 sm:p-5">
@@ -42,6 +43,20 @@ export default function TeachingChatbotPage({ weakTopicSummary }) {
               data-ui-button
             >
               Start Recommended Topic
+            </Link>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-care-200 bg-care-50 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="m-0 text-lg font-semibold text-care-900">Start the full learning course</p>
+              <p className="mt-1 mb-0 text-sm leading-relaxed text-care-800">
+                Watch the introduction video first, then continue through each topic in order.
+              </p>
+            </div>
+            <Link to="/learning/introduction" className="btn btn-primary min-w-52" data-ui-button>
+              Start with introduction
             </Link>
           </div>
         </section>

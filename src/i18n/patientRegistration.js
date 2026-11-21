@@ -1,0 +1,71 @@
+const registrationText = {
+  en: {
+    socioTitle: "Sociodemographic Data",
+    socioHelp: "Choose the answer that best describes you. Religion is optional.",
+    educationStatus: "Educational status", dietaryPattern: "Dietary pattern", habits: "Habits (if any)",
+    ageRequired: "Please select your age group.",
+    sessionStartFailed: "Could not start the patient session. Please try again.",
+    clinicalTitle: "Clinical Information",
+    clinicalHelp: "Select only information already known or documented by your care team.",
+    ageGroup: "Age group (completed years)", maritalStatus: "Marital status", familyType: "Type of family",
+    residence: "Place of residence", religion: "Religion (optional)", socioeconomicStatus: "Socioeconomic status",
+    cldDuration: "Duration of chronic liver disease (CLD)", cldEtiology: "Recorded cause of CLD",
+    etiologyOther: "Other documented cause (optional)", cldStage: "Recorded clinical stage of CLD",
+    stageOther: "Other documented CLD stage (optional)", comorbidities: "Recorded comorbidities",
+    comorbiditiesOther: "Other documented condition (optional)", sarcopeniaDuration: "Duration of sarcopenia (if known)",
+    cldTreatment: "Current treatment recorded for CLD", treatmentOther: "Other treatment details (optional)",
+    hospitalizationHistory: "Hospitalizations due to CLD", nutritionalCounselling: "Have you received nutritional counselling?",
+    previousEducation: "Previous education about CLD and sarcopenia",
+    documentedOnly: "Do not guess. Choose only information documented by your care team.",
+    options: {
+      age_18_30: "18–30 years", age_31_45: "31–45 years", age_46_60: "46–60 years", age_61_plus: "61 years and above",
+      married: "Married", unmarried: "Unmarried", widowed: "Widowed", divorced_separated: "Divorced / Separated",
+      nuclear: "Nuclear", joint: "Joint", extended: "Extended", rural: "Rural", urban: "Urban",
+      hindu: "Hindu", muslim: "Muslim", christian: "Christian", religion_other: "Other",
+      socioeconomic_lower: "Lower", socioeconomic_middle: "Middle", socioeconomic_upper: "Upper", alcohol: "Alcohol consumption", smoking: "Smoking", tobacco_chewing: "Tobacco chewing",
+      less_than_1_year: "Less than 1 year", one_to_five_years: "1–5 years", six_to_ten_years: "6–10 years", more_than_10_years: "More than 10 years",
+      alcohol_related: "Alcohol-related liver disease", viral_hepatitis: "Viral hepatitis (Hepatitis B/C)", fatty_liver: "Fatty liver disease (MASLD/MASH)", etiology_other: "Other causes (autoimmune, cholestatic, cryptogenic, or other)",
+      compensated_cirrhosis: "Compensated cirrhosis", decompensated_cirrhosis: "Decompensated cirrhosis", stage_other: "Other documented stage of CLD", not_documented: "Not documented / unknown",
+      diabetes: "Diabetes mellitus", hypertension: "Hypertension", comorbidity_other: "Other comorbidities (e.g., kidney or cardiovascular disease)", no_known_comorbidities: "No known comorbidities",
+      less_than_6_months: "Less than 6 months", six_to_twelve_months: "6–12 months", more_than_1_year: "More than 1 year",
+      medical_management_only: "Medical management only", medical_nutrition: "Medical management with nutritional supplementation", treatment_other: "Other treatment", complications_management: "Management of CLD complications",
+      never: "Never", once: "Once", twice: "Twice", three_or_more: "Three or more times", yes: "Yes", no: "No", not_sure: "Not sure",
+      education_none: "No previous education", education_cld: "Education about CLD only", education_sarcopenia: "Education about sarcopenia only", education_both: "Education about both CLD and sarcopenia", none: "None",
+    },
+  },
+  hi: {
+    socioTitle: "सामाजिक-जनसांख्यिकीय जानकारी", socioHelp: "अपने लिए सबसे उपयुक्त उत्तर चुनें। धर्म बताना वैकल्पिक है।", educationStatus: "शैक्षिक स्थिति", dietaryPattern: "आहार पद्धति", habits: "आदतें (यदि हों)",
+    ageRequired: "कृपया अपना आयु वर्ग चुनें।",
+    sessionStartFailed: "रोगी सत्र शुरू नहीं हो सका। कृपया फिर से प्रयास करें।",
+    clinicalTitle: "चिकित्सकीय जानकारी", clinicalHelp: "केवल वही जानकारी चुनें जो आपको ज्ञात हो या आपकी देखभाल टीम ने दर्ज की हो।",
+    ageGroup: "आयु वर्ग (पूरे वर्ष)", maritalStatus: "वैवाहिक स्थिति", familyType: "परिवार का प्रकार", residence: "निवास स्थान", religion: "धर्म (वैकल्पिक)", socioeconomicStatus: "सामाजिक-आर्थिक स्थिति",
+    cldDuration: "क्रॉनिक लिवर डिज़ीज़ (CLD) की अवधि", cldEtiology: "CLD का दर्ज कारण", etiologyOther: "अन्य दर्ज कारण (वैकल्पिक)", cldStage: "CLD की दर्ज चिकित्सकीय अवस्था", stageOther: "CLD की अन्य दर्ज अवस्था (वैकल्पिक)", comorbidities: "दर्ज अन्य बीमारियाँ", comorbiditiesOther: "अन्य दर्ज बीमारी (वैकल्पिक)", sarcopeniaDuration: "सार्कोपीनिया की अवधि (यदि ज्ञात हो)", cldTreatment: "CLD के लिए दर्ज वर्तमान उपचार", treatmentOther: "अन्य उपचार का विवरण (वैकल्पिक)", hospitalizationHistory: "CLD के कारण अस्पताल में भर्ती", nutritionalCounselling: "क्या आपको पोषण संबंधी सलाह मिली है?", previousEducation: "CLD और सार्कोपीनिया के बारे में पहले मिली शिक्षा", documentedOnly: "अनुमान न लगाएँ। केवल देखभाल टीम द्वारा दर्ज जानकारी चुनें।",
+    options: {
+      age_18_30: "18–30 वर्ष", age_31_45: "31–45 वर्ष", age_46_60: "46–60 वर्ष", age_61_plus: "61 वर्ष और अधिक", married: "विवाहित", unmarried: "अविवाहित", widowed: "विधवा / विधुर", divorced_separated: "तलाकशुदा / अलग", nuclear: "एकल परिवार", joint: "संयुक्त परिवार", extended: "विस्तारित परिवार", rural: "ग्रामीण", urban: "शहरी", hindu: "हिंदू", muslim: "मुस्लिम", christian: "ईसाई", religion_other: "अन्य", socioeconomic_lower: "निम्न", socioeconomic_middle: "मध्यम", socioeconomic_upper: "उच्च", alcohol: "शराब का सेवन", smoking: "धूम्रपान", tobacco_chewing: "तंबाकू चबाना",
+      less_than_1_year: "1 वर्ष से कम", one_to_five_years: "1–5 वर्ष", six_to_ten_years: "6–10 वर्ष", more_than_10_years: "10 वर्ष से अधिक", alcohol_related: "शराब-संबंधी लिवर रोग", viral_hepatitis: "वायरल हेपेटाइटिस (हेपेटाइटिस B/C)", fatty_liver: "फैटी लिवर रोग (MASLD/MASH)", etiology_other: "अन्य कारण (ऑटोइम्यून, कोलेस्टेटिक, क्रिप्टोजेनिक या अन्य)", compensated_cirrhosis: "क्षतिपूरित सिरोसिस", decompensated_cirrhosis: "विघटित सिरोसिस", stage_other: "CLD की अन्य दर्ज अवस्था", not_documented: "दर्ज नहीं / अज्ञात", diabetes: "मधुमेह", hypertension: "उच्च रक्तचाप", comorbidity_other: "अन्य बीमारी (जैसे गुर्दे या हृदय रोग)", no_known_comorbidities: "कोई ज्ञात अन्य बीमारी नहीं", less_than_6_months: "6 महीने से कम", six_to_twelve_months: "6–12 महीने", more_than_1_year: "1 वर्ष से अधिक", medical_management_only: "केवल चिकित्सकीय प्रबंधन", medical_nutrition: "पोषण पूरक के साथ चिकित्सकीय प्रबंधन", treatment_other: "अन्य उपचार", complications_management: "CLD की जटिलताओं का प्रबंधन", never: "कभी नहीं", once: "एक बार", twice: "दो बार", three_or_more: "तीन या अधिक बार", yes: "हाँ", no: "नहीं", not_sure: "निश्चित नहीं", education_none: "पहले कोई शिक्षा नहीं", education_cld: "केवल CLD के बारे में शिक्षा", education_sarcopenia: "केवल सार्कोपीनिया के बारे में शिक्षा", education_both: "CLD और सार्कोपीनिया दोनों के बारे में शिक्षा", none: "कोई नहीं",
+    },
+  },
+  kn: {
+    socioTitle: "ಸಾಮಾಜಿಕ-ಜನಸಾಂಖ್ಯಿಕ ಮಾಹಿತಿ", socioHelp: "ನಿಮಗೆ ಹೆಚ್ಚು ಸೂಕ್ತವಾದ ಉತ್ತರವನ್ನು ಆರಿಸಿ. ಧರ್ಮವನ್ನು ತಿಳಿಸುವುದು ಐಚ್ಛಿಕ.", educationStatus: "ಶೈಕ್ಷಣಿಕ ಸ್ಥಿತಿ", dietaryPattern: "ಆಹಾರ ಪದ್ಧತಿ", habits: "ಅಭ್ಯಾಸಗಳು (ಇದ್ದರೆ)", clinicalTitle: "ವೈದ್ಯಕೀಯ ಮಾಹಿತಿ", clinicalHelp: "ನಿಮಗೆ ತಿಳಿದಿರುವ ಅಥವಾ ನಿಮ್ಮ ಆರೈಕೆ ತಂಡ ದಾಖಲಿಸಿದ ಮಾಹಿತಿಯನ್ನು ಮಾತ್ರ ಆಯ್ಕೆಮಾಡಿ.",
+    ageRequired: "ದಯವಿಟ್ಟು ನಿಮ್ಮ ವಯೋವರ್ಗವನ್ನು ಆಯ್ಕೆಮಾಡಿ.", sessionStartFailed: "ರೋಗಿಯ ಅಧಿವೇಶನವನ್ನು ಪ್ರಾರಂಭಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.", ageGroup: "ವಯೋವರ್ಗ (ಪೂರ್ಣ ವರ್ಷಗಳು)", maritalStatus: "ವೈವಾಹಿಕ ಸ್ಥಿತಿ", familyType: "ಕುಟುಂಬದ ವಿಧ", residence: "ವಾಸಸ್ಥಳ", religion: "ಧರ್ಮ (ಐಚ್ಛಿಕ)", socioeconomicStatus: "ಸಾಮಾಜಿಕ-ಆರ್ಥಿಕ ಸ್ಥಿತಿ", cldDuration: "ದೀರ್ಘಕಾಲದ ಯಕೃತ್ತಿನ ಕಾಯಿಲೆಯ (CLD) ಅವಧಿ", cldEtiology: "ದಾಖಲಿಸಿದ CLD ಕಾರಣ", etiologyOther: "ಇತರೆ ದಾಖಲಿಸಿದ ಕಾರಣ (ಐಚ್ಛಿಕ)", cldStage: "ದಾಖಲಿಸಿದ CLD ವೈದ್ಯಕೀಯ ಹಂತ", stageOther: "ಇತರೆ ದಾಖಲಿಸಿದ CLD ಹಂತ (ಐಚ್ಛಿಕ)", comorbidities: "ದಾಖಲಿಸಿದ ಸಹ-ರೋಗಗಳು", comorbiditiesOther: "ಇತರೆ ದಾಖಲಿಸಿದ ಸ್ಥಿತಿ (ಐಚ್ಛಿಕ)", sarcopeniaDuration: "ಸಾರ್ಕೋಪೀನಿಯಾದ ಅವಧಿ (ತಿಳಿದಿದ್ದರೆ)", cldTreatment: "CLDಗೆ ದಾಖಲಿಸಿದ ಪ್ರಸ್ತುತ ಚಿಕಿತ್ಸೆ", treatmentOther: "ಇತರೆ ಚಿಕಿತ್ಸೆಯ ವಿವರ (ಐಚ್ಛಿಕ)", hospitalizationHistory: "CLD ಕಾರಣದಿಂದ ಆಸ್ಪತ್ರೆ ದಾಖಲಾತಿ", nutritionalCounselling: "ನಿಮಗೆ ಪೌಷ್ಟಿಕಾಂಶ ಸಲಹೆ ದೊರೆತಿದೆಯೇ?", previousEducation: "CLD ಮತ್ತು ಸಾರ್ಕೋಪೀನಿಯಾ ಕುರಿತು ಹಿಂದಿನ ಆರೋಗ್ಯ ಶಿಕ್ಷಣ", documentedOnly: "ಊಹಿಸಬೇಡಿ. ಆರೈಕೆ ತಂಡ ದಾಖಲಿಸಿದ ಮಾಹಿತಿಯನ್ನು ಮಾತ್ರ ಆಯ್ಕೆಮಾಡಿ.",
+    options: {
+      age_18_30: "18–30 ವರ್ಷ", age_31_45: "31–45 ವರ್ಷ", age_46_60: "46–60 ವರ್ಷ", age_61_plus: "61 ವರ್ಷ ಮತ್ತು ಮೇಲ್ಪಟ್ಟು", married: "ವಿವಾಹಿತ", unmarried: "ಅವಿವಾಹಿತ", widowed: "ವಿಧವೆ / ವಿಧುರ", divorced_separated: "ವಿಚ್ಛೇದಿತ / ಪ್ರತ್ಯೇಕ", nuclear: "ಸಣ್ಣ ಕುಟುಂಬ", joint: "ಅವಿಭಕ್ತ ಕುಟುಂಬ", extended: "ವಿಸ್ತೃತ ಕುಟುಂಬ", rural: "ಗ್ರಾಮೀಣ", urban: "ನಗರ", hindu: "ಹಿಂದೂ", muslim: "ಮುಸ್ಲಿಂ", christian: "ಕ್ರೈಸ್ತ", religion_other: "ಇತರೆ", socioeconomic_lower: "ಕೆಳಮಟ್ಟ", socioeconomic_middle: "ಮಧ್ಯಮ", socioeconomic_upper: "ಮೇಲ್ಮಟ್ಟ", alcohol: "ಮದ್ಯ ಸೇವನೆ", smoking: "ಧೂಮಪಾನ", tobacco_chewing: "ತಂಬಾಕು ಜಗಿಯುವುದು",
+      less_than_1_year: "1 ವರ್ಷಕ್ಕಿಂತ ಕಡಿಮೆ", one_to_five_years: "1–5 ವರ್ಷ", six_to_ten_years: "6–10 ವರ್ಷ", more_than_10_years: "10 ವರ್ಷಕ್ಕಿಂತ ಹೆಚ್ಚು", alcohol_related: "ಮದ್ಯ ಸಂಬಂಧಿತ ಯಕೃತ್ತಿನ ಕಾಯಿಲೆ", viral_hepatitis: "ವೈರಲ್ ಹೆಪಟೈಟಿಸ್ (ಹೆಪಟೈಟಿಸ್ B/C)", fatty_liver: "ಕೊಬ್ಬಿನ ಯಕೃತ್ತಿನ ಕಾಯಿಲೆ (MASLD/MASH)", etiology_other: "ಇತರೆ ಕಾರಣಗಳು (ಸ್ವಪ್ರತಿರಕ್ಷಕ, ಕೊಲೆಸ್ಟಾಟಿಕ್, ಕ್ರಿಪ್ಟೋಜೆನಿಕ್ ಅಥವಾ ಇತರೆ)", compensated_cirrhosis: "ಪರಿಹಾರಗೊಂಡ ಸಿರೋಸಿಸ್", decompensated_cirrhosis: "ಪರಿಹಾರವಾಗದ ಸಿರೋಸಿಸ್", stage_other: "CLDಯ ಇತರೆ ದಾಖಲಿಸಿದ ಹಂತ", not_documented: "ದಾಖಲಾಗಿಲ್ಲ / ತಿಳಿದಿಲ್ಲ", diabetes: "ಮಧುಮೇಹ", hypertension: "ಅಧಿಕ ರಕ್ತದೊತ್ತಡ", comorbidity_other: "ಇತರೆ ಸಹ-ರೋಗಗಳು (ಉದಾ. ಮೂತ್ರಪಿಂಡ ಅಥವಾ ಹೃದಯರೋಗ)", no_known_comorbidities: "ತಿಳಿದಿರುವ ಸಹ-ರೋಗಗಳಿಲ್ಲ", less_than_6_months: "6 ತಿಂಗಳಿಗಿಂತ ಕಡಿಮೆ", six_to_twelve_months: "6–12 ತಿಂಗಳು", more_than_1_year: "1 ವರ್ಷಕ್ಕಿಂತ ಹೆಚ್ಚು", medical_management_only: "ವೈದ್ಯಕೀಯ ನಿರ್ವಹಣೆ ಮಾತ್ರ", medical_nutrition: "ಪೌಷ್ಟಿಕ ಪೂರಕದೊಂದಿಗೆ ವೈದ್ಯಕೀಯ ನಿರ್ವಹಣೆ", treatment_other: "ಇತರೆ ಚಿಕಿತ್ಸೆ", complications_management: "CLD ತೊಂದರೆಗಳ ನಿರ್ವಹಣೆ", never: "ಎಂದಿಗೂ ಇಲ್ಲ", once: "ಒಮ್ಮೆ", twice: "ಎರಡು ಬಾರಿ", three_or_more: "ಮೂರು ಅಥವಾ ಹೆಚ್ಚು ಬಾರಿ", yes: "ಹೌದು", no: "ಇಲ್ಲ", not_sure: "ಖಚಿತವಿಲ್ಲ", education_none: "ಹಿಂದಿನ ಶಿಕ್ಷಣ ಇಲ್ಲ", education_cld: "CLD ಕುರಿತು ಮಾತ್ರ ಶಿಕ್ಷಣ", education_sarcopenia: "ಸಾರ್ಕೋಪೀನಿಯಾ ಕುರಿತು ಮಾತ್ರ ಶಿಕ್ಷಣ", education_both: "CLD ಮತ್ತು ಸಾರ್ಕೋಪೀನಿಯಾ ಎರಡರ ಕುರಿತು ಶಿಕ್ಷಣ", none: "ಯಾವುದೂ ಇಲ್ಲ",
+    },
+  },
+  mr: {
+    socioTitle: "सामाजिक-लोकसंख्याशास्त्रीय माहिती", socioHelp: "तुमच्यासाठी सर्वात योग्य उत्तर निवडा. धर्म सांगणे ऐच्छिक आहे.", educationStatus: "शैक्षणिक स्थिती", dietaryPattern: "आहार पद्धती", habits: "सवयी (असल्यास)", clinicalTitle: "वैद्यकीय माहिती", clinicalHelp: "फक्त तुम्हाला माहीत असलेली किंवा तुमच्या उपचार पथकाने नोंदवलेली माहिती निवडा.",
+    ageRequired: "कृपया तुमचा वयोगट निवडा.",
+    sessionStartFailed: "रुग्ण सत्र सुरू करता आले नाही. कृपया पुन्हा प्रयत्न करा.",
+    ageGroup: "वयोगट (पूर्ण वर्षे)", maritalStatus: "वैवाहिक स्थिती", familyType: "कुटुंबाचा प्रकार", residence: "निवासस्थान", religion: "धर्म (ऐच्छिक)", socioeconomicStatus: "सामाजिक-आर्थिक स्थिती", cldDuration: "दीर्घकालीन यकृत रोगाचा (CLD) कालावधी", cldEtiology: "नोंदवलेले CLD चे कारण", etiologyOther: "इतर नोंदवलेले कारण (ऐच्छिक)", cldStage: "नोंदवलेली CLD ची वैद्यकीय अवस्था", stageOther: "इतर नोंदवलेली CLD अवस्था (ऐच्छिक)", comorbidities: "नोंदवलेले सहविकार", comorbiditiesOther: "इतर नोंदवलेली स्थिती (ऐच्छिक)", sarcopeniaDuration: "सार्कोपेनियाचा कालावधी (माहीत असल्यास)", cldTreatment: "CLD साठी नोंदवलेले सध्याचे उपचार", treatmentOther: "इतर उपचारांचा तपशील (ऐच्छिक)", hospitalizationHistory: "CLD मुळे रुग्णालयात दाखल होण्याचा इतिहास", nutritionalCounselling: "तुम्हाला पोषणविषयक समुपदेशन मिळाले आहे का?", previousEducation: "CLD आणि सार्कोपेनियाविषयी पूर्वी मिळालेले आरोग्य शिक्षण", documentedOnly: "अंदाज लावू नका. उपचार पथकाने नोंदवलेली माहितीच निवडा.",
+    options: {
+      age_18_30: "18–30 वर्षे", age_31_45: "31–45 वर्षे", age_46_60: "46–60 वर्षे", age_61_plus: "61 वर्षे आणि अधिक", married: "विवाहित", unmarried: "अविवाहित", widowed: "विधवा / विधुर", divorced_separated: "घटस्फोटित / विभक्त", nuclear: "लहान कुटुंब", joint: "संयुक्त कुटुंब", extended: "विस्तारित कुटुंब", rural: "ग्रामीण", urban: "शहरी", hindu: "हिंदू", muslim: "मुस्लिम", christian: "ख्रिश्चन", religion_other: "इतर", socioeconomic_lower: "कमी", socioeconomic_middle: "मध्यम", socioeconomic_upper: "उच्च", alcohol: "मद्यपान", smoking: "धूम्रपान", tobacco_chewing: "तंबाखू चघळणे",
+      less_than_1_year: "1 वर्षापेक्षा कमी", one_to_five_years: "1–5 वर्षे", six_to_ten_years: "6–10 वर्षे", more_than_10_years: "10 वर्षांपेक्षा जास्त", alcohol_related: "मद्य-संबंधित यकृत रोग", viral_hepatitis: "विषाणूजन्य हिपॅटायटिस (हिपॅटायटिस B/C)", fatty_liver: "फॅटी लिव्हर रोग (MASLD/MASH)", etiology_other: "इतर कारणे (ऑटोइम्यून, कोलेस्टॅटिक, क्रिप्टोजेनिक किंवा इतर)", compensated_cirrhosis: "भरपाई झालेला सिरोसिस", decompensated_cirrhosis: "भरपाई न झालेला सिरोसिस", stage_other: "CLD ची इतर नोंदवलेली अवस्था", not_documented: "नोंद नाही / अज्ञात", diabetes: "मधुमेह", hypertension: "उच्च रक्तदाब", comorbidity_other: "इतर सहविकार (उदा. मूत्रपिंड किंवा हृदयविकार)", no_known_comorbidities: "माहीत असलेले सहविकार नाहीत", less_than_6_months: "6 महिन्यांपेक्षा कमी", six_to_twelve_months: "6–12 महिने", more_than_1_year: "1 वर्षापेक्षा जास्त", medical_management_only: "फक्त वैद्यकीय व्यवस्थापन", medical_nutrition: "पोषण पूरकांसह वैद्यकीय व्यवस्थापन", treatment_other: "इतर उपचार", complications_management: "CLD च्या गुंतागुंतींचे व्यवस्थापन", never: "कधीही नाही", once: "एकदा", twice: "दोनदा", three_or_more: "तीन किंवा अधिक वेळा", yes: "होय", no: "नाही", not_sure: "निश्चित नाही", education_none: "पूर्वी शिक्षण नाही", education_cld: "फक्त CLD विषयी शिक्षण", education_sarcopenia: "फक्त सार्कोपेनियाविषयी शिक्षण", education_both: "CLD आणि सार्कोपेनिया दोन्हीविषयी शिक्षण", none: "काहीही नाही",
+    },
+  },
+};
+
+export function getPatientRegistrationText(language, key) {
+  const value = key.split(".").reduce((current, part) => current?.[part], registrationText[language] || registrationText.en);
+  return typeof value === "string" ? value : key;
+}

@@ -2,7 +2,7 @@ const patientFormOverrides = {
   hi: {
     patientForm: {
       title: "रोगी फॉर्म",
-      subtitle: "यह केवल व्यक्तिगत सीखने के लिए है। इस डेमो में डेटा केवल फ्रंटएंड स्टेट में रहेगा।",
+      subtitle: "केवल रोगी आईडी का उपयोग करें। फॉर्म के उत्तर इस सीखने के सत्र में सहेजे जाते हैं।",
       patientId: "रोगी आईडी",
       patientIdPlaceholder: "रोगी आईडी दर्ज करें",
       age: "आयु (वर्ष)",
@@ -97,7 +97,7 @@ const patientFormOverrides = {
   mr: {
     patientForm: {
       title: "रुग्ण फॉर्म",
-      subtitle: "हा फक्त वैयक्तिक मार्गदर्शनासाठी आहे. या डेमोमध्ये माहिती फक्त फ्रंटएंड स्टेटमध्ये राहील.",
+      subtitle: "फक्त रुग्ण आयडी वापरा. फॉर्मची उत्तरे या शिक्षण सत्रात जतन केली जातात.",
       patientId: "रुग्ण आयडी",
       patientIdPlaceholder: "रुग्ण आयडी लिहा",
       age: "वय (वर्षे)",
@@ -192,7 +192,7 @@ const patientFormOverrides = {
   kn: {
     patientForm: {
       title: "ರೋಗಿಯ ನಮೂನೆ",
-      subtitle: "ಇದು ವೈಯಕ್ತಿಕ ಕಲಿಕೆಗೆ ಮಾತ್ರ. ಈ ಡೆಮೋದಲ್ಲಿ ಮಾಹಿತಿ ಫ್ರಂಟ್‌ಎಂಡ್ ಸ್ಟೇಟ್ನಲ್ಲೇ ಉಳಿಯುತ್ತದೆ.",
+      subtitle: "ರೋಗಿಯ ಐಡಿಯನ್ನು ಮಾತ್ರ ಬಳಸಿ. ಫಾರ್ಮ್ ಉತ್ತರಗಳನ್ನು ಈ ಕಲಿಕಾ ಅಧಿವೇಶನದಲ್ಲಿ ಉಳಿಸಲಾಗುತ್ತದೆ.",
       patientId: "ರೋಗಿ ಐಡಿ",
       patientIdPlaceholder: "ರೋಗಿ ಐಡಿ ನಮೂದಿಸಿ",
       age: "ವಯಸ್ಸು (ವರ್ಷಗಳು)",
@@ -297,7 +297,7 @@ Object.assign(patientFormOverrides.hi.patientForm.options, {
   secondaryEducation: "माध्यमिक शिक्षा",
   higherSecondary: "उच्च माध्यमिक",
   graduateAndAbove: "स्नातक और उससे ऊपर",
-  employed: "नियोजित",
+  employed: "नियोजित (निजी, सरकारी या स्वरोजगार)",
   unemployed: "बेरोजगार",
   homemaker: "गृहिणी",
   retired: "सेवानिवृत्त",
@@ -314,7 +314,7 @@ Object.assign(patientFormOverrides.mr.patientForm.options, {
   secondaryEducation: "माध्यमिक शिक्षण",
   higherSecondary: "उच्च माध्यमिक",
   graduateAndAbove: "पदवीधर आणि पुढे",
-  employed: "नोकरीत",
+  employed: "नोकरीत (खासगी, सरकारी किंवा स्वयंरोजगार)",
   unemployed: "बेरोजगार",
   homemaker: "गृहिणी",
   retired: "निवृत्त",
@@ -331,7 +331,7 @@ Object.assign(patientFormOverrides.kn.patientForm.options, {
   secondaryEducation: "ಪ್ರೌಢ ಶಿಕ್ಷಣ",
   higherSecondary: "ಉನ್ನತ ಪ್ರೌಢ ಶಿಕ್ಷಣ",
   graduateAndAbove: "ಪದವಿ ಮತ್ತು ಮೇಲು",
-  employed: "ಉದ್ಯೋಗದಲ್ಲಿರುವವರು",
+  employed: "ಉದ್ಯೋಗದಲ್ಲಿರುವವರು (ಖಾಸಗಿ, ಸರ್ಕಾರಿ ಅಥವಾ ಸ್ವಯಂ ಉದ್ಯೋಗ)",
   unemployed: "ನಿರುದ್ಯೋಗಿ",
   homemaker: "ಗೃಹಿಣಿ",
   retired: "ನಿವೃತ್ತ",

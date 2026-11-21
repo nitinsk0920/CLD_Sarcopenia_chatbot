@@ -1,5 +1,9 @@
 {
-  "signature": "8dad9c389c763ae0dcb74dd6433ce6d78a627ed48a67f19ae09d22be48e2b97c",
-  "count": 43,
-  "dim": 384
+  "signature": "da3bb0acc584ee31ff20d855d5275c5b890abe1dbfa6f5106d12765bb3dab5c4",
+  "count": 44,
+  "dim": 768,
+  "embedding_model": "gemini-embedding-2",
+  "similarity_metric": "cosine_similarity (normalized vectors + inner product)",
+  "source_content_hash": "da3bb0acc584ee31ff20d855d5275c5b890abe1dbfa6f5106d12765bb3dab5c4",
+  "created_at": "2026-11-19T16:46:04.481455+00:00"
 }
