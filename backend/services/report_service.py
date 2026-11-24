@@ -5,6 +5,7 @@ from datetime import datetime
 from datetime import timezone
 from typing import Any
 
+from sqlalchemy import bindparam
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -14,6 +15,18 @@ from schemas.report_schemas import AdminReportListItem
 from schemas.report_schemas import FinalReportSaveRequest
 from schemas.report_schemas import PatientProfilePayload
 from schemas.report_schemas import QuizAttemptPayload
+
+
+def acquire_session_activity_lock(db: Session, session_id: str) -> None:
+    """Serialize chat generation and destructive operations for a session in PostgreSQL."""
+    get_bind = getattr(db, "get_bind", None)
+    bind = get_bind() if callable(get_bind) else None
+    if getattr(getattr(bind, "dialect", None), "name", None) != "postgresql":
+        return
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(0, hashtext(:session_id))"),
+        {"session_id": str(session_id)},
+    )
 
 
 class ReportService:
@@ -1127,6 +1140,192 @@ class ReportService:
             )
             for report in reports
         ]
+
+    def delete_patient_data(self, patient_code: str, *, admin_id: int) -> dict[str, Any]:
+        """Delete one admin-owned patient and all dependent persisted session data.
+
+        All SQL, including LangGraph checkpoints stored in this PostgreSQL database,
+        participates in the caller's db_session_scope transaction.
+        """
+        patient_code = str(patient_code or "").strip()
+        if not patient_code or patient_code.startswith("__draft__:"):
+            raise ValueError("Patient record was not found.")
+
+        scope = {"admin_id": admin_id, "patient_code": patient_code}
+        patients = (
+            self.db.execute(
+                text(
+                    """
+                    SELECT id
+                    FROM patients
+                    WHERE admin_id = :admin_id AND patient_code = :patient_code
+                    FOR UPDATE
+                    """
+                ),
+                scope,
+            )
+            .mappings()
+            .all()
+        )
+        patient_ids = [row["id"] for row in patients]
+
+        sessions = (
+            self.db.execute(
+                text(
+                    """
+                    SELECT ps.id
+                    FROM patient_sessions ps
+                    WHERE ps.admin_id = :admin_id
+                      AND (
+                        ps.patient_id IN (
+                            SELECT p.id FROM patients p
+                            WHERE p.admin_id = :admin_id AND p.patient_code = :patient_code
+                        )
+                        OR ps.draft_profile #>> '{fields,patientId}' = :patient_code
+                      )
+                    FOR UPDATE
+                    """
+                ),
+                scope,
+            )
+            .mappings()
+            .all()
+        )
+        session_ids = [str(row["id"]) for row in sessions]
+
+        report = (
+            self.db.execute(
+                text(
+                    """
+                    SELECT id
+                    FROM patient_reports
+                    WHERE admin_id = :admin_id
+                      AND (
+                        patient_code = :patient_code
+                        OR patient_id IN (
+                            SELECT p.id FROM patients p
+                            WHERE p.admin_id = :admin_id AND p.patient_code = :patient_code
+                        )
+                        OR session_id::text IN (
+                            SELECT ps.id::text FROM patient_sessions ps
+                            WHERE ps.admin_id = :admin_id
+                              AND (
+                                ps.patient_id IN (
+                                    SELECT p.id FROM patients p
+                                    WHERE p.admin_id = :admin_id AND p.patient_code = :patient_code
+                                )
+                                OR ps.draft_profile #>> '{fields,patientId}' = :patient_code
+                              )
+                        )
+                      )
+                    FOR UPDATE
+                    """
+                ),
+                scope,
+            )
+            .mappings()
+            .all()
+        )
+
+        if not patient_ids and not session_ids and not report:
+            raise ValueError("Patient record was not found.")
+
+        if session_ids:
+            for session_id in sorted(session_ids):
+                acquire_session_activity_lock(self.db, session_id)
+
+            for table_name in ("checkpoint_writes", "checkpoint_blobs", "checkpoints"):
+                table_exists = self.db.execute(
+                    text("SELECT to_regclass(:relation_name)"),
+                    {"relation_name": f"public.{table_name}"},
+                ).scalar()
+                if table_exists:
+                    statement = text(
+                        f"DELETE FROM public.{table_name} "
+                        "WHERE thread_id::text IN :session_ids"
+                    ).bindparams(bindparam("session_ids", expanding=True))
+                    self.db.execute(statement, {"session_ids": session_ids})
+
+            self.db.execute(
+                text(
+                    """
+                    DELETE FROM quiz_answers
+                    WHERE quiz_attempt_id IN (
+                        SELECT id FROM quiz_attempts WHERE session_id::text IN :session_ids
+                    )
+                    """
+                ).bindparams(bindparam("session_ids", expanding=True)),
+                {"session_ids": session_ids},
+            )
+            self.db.execute(
+                text(
+                    """
+                    DELETE FROM quiz_attempts
+                    WHERE session_id::text IN :session_ids
+                    """
+                ).bindparams(bindparam("session_ids", expanding=True)),
+                {"session_ids": session_ids},
+            )
+
+        self.db.execute(
+            text(
+                """
+                DELETE FROM patient_reports
+                WHERE admin_id = :admin_id
+                  AND (
+                    patient_code = :patient_code
+                    OR patient_id IN (
+                        SELECT p.id FROM patients p
+                        WHERE p.admin_id = :admin_id AND p.patient_code = :patient_code
+                    )
+                    OR session_id::text IN (
+                        SELECT ps.id::text FROM patient_sessions ps
+                        WHERE ps.admin_id = :admin_id
+                          AND (
+                            ps.patient_id IN (
+                                SELECT p.id FROM patients p
+                                WHERE p.admin_id = :admin_id AND p.patient_code = :patient_code
+                            )
+                            OR ps.draft_profile #>> '{fields,patientId}' = :patient_code
+                          )
+                    )
+                  )
+                """
+            ),
+            scope,
+        )
+        self.db.execute(
+            text(
+                """
+                DELETE FROM patient_sessions
+                WHERE admin_id = :admin_id
+                  AND (
+                    patient_id IN (
+                        SELECT p.id FROM patients p
+                        WHERE p.admin_id = :admin_id AND p.patient_code = :patient_code
+                    )
+                    OR draft_profile #>> '{fields,patientId}' = :patient_code
+                  )
+                """
+            ),
+            scope,
+        )
+        self.db.execute(
+            text(
+                """
+                DELETE FROM patients
+                WHERE admin_id = :admin_id AND patient_code = :patient_code
+                """
+            ),
+            scope,
+        )
+
+        return {
+            "patient_code": patient_code,
+            "patient_ids": patient_ids,
+            "session_ids": session_ids,
+            "deleted_report_count": len(report),
+        }
 
     def fetch_single_report(self, report_id: str, admin_id: int) -> AdminReportDetail:
         try:

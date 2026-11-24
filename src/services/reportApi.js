@@ -1,6 +1,7 @@
 import { apiFetch, getApiBaseUrl } from "./apiClient";
 
 export { getApiBaseUrl };
+export const ADMIN_REPORTS_CHANGED_EVENT = "admin:reports-changed";
 
 export function startPatientReportSession(payload) {
   return apiFetch("/session/start", {
@@ -49,6 +50,15 @@ export function fetchAdminReports() {
   return apiFetch("/admin/reports", {
     fallbackMessage: "Could not load admin reports.",
   });
+}
+
+export async function deleteAdminPatientData(patientCode) {
+  const result = await apiFetch(`/admin/patients/${encodeURIComponent(patientCode)}`, {
+    method: "DELETE",
+    fallbackMessage: "Could not permanently delete patient data.",
+  });
+  window.dispatchEvent(new Event(ADMIN_REPORTS_CHANGED_EVENT));
+  return result;
 }
 
 export function fetchAdminReportDetail(reportId) {

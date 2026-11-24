@@ -10,7 +10,6 @@ import { fetchPatientChatHistory } from "../services/reportApi";
 const API_BASE_URL = getApiBaseUrl();
 const CHAT_URL = `${API_BASE_URL}/api/chat`;
 const AUDIO_URL = `${API_BASE_URL}/api/chat/audio`;
-const TRANSCRIBE_URL = `${API_BASE_URL}/api/chat/transcribe`;
 
 function createInitialAssistantMessage(t) {
   return {
@@ -35,14 +34,8 @@ export default function FreeTextQAPage({
   const [historyLoading, setHistoryLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
   const [errorText, setErrorText] = useState("");
-  const [recordingStatus, setRecordingStatus] = useState("");
   const [playingMessageId, setPlayingMessageId] = useState("");
-  const mediaRecorderRef = useRef(null);
-  const mediaStreamRef = useRef(null);
-  const recordedChunksRef = useRef([]);
   const audioElementRef = useRef(null);
   const audioCacheRef = useRef(new Map());
   const chatScrollRef = useRef(null);
@@ -112,12 +105,6 @@ export default function FreeTextQAPage({
 
   useEffect(() => {
     return () => {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-        mediaRecorderRef.current.stop();
-      }
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      }
       if (audioElementRef.current) {
         audioElementRef.current.pause();
       }
@@ -170,7 +157,7 @@ export default function FreeTextQAPage({
     setStreaming(false);
   }
 
-  async function askQuestion(question, extra = {}) {
+  async function askQuestion(question) {
     if (requestInFlightRef.current) return;
     const trimmedQuestion = question.trim();
     if (!trimmedQuestion) {
@@ -200,7 +187,6 @@ export default function FreeTextQAPage({
           session_id: stableSessionId,
           question: trimmedQuestion,
           selected_language: language,
-          transcribed_language: extra.transcribedLanguage || "",
           weak_topic_summary: weakTopicSummary,
         },
         fallbackMessage: "Could not load a chatbot reply.",
@@ -303,97 +289,6 @@ export default function FreeTextQAPage({
     }
   }
 
-  async function stopRecording() {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
-    }
-  }
-
-  async function startRecording() {
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setErrorText(t("freeQA.voiceNotSupported"));
-      return;
-    }
-
-    setErrorText("");
-    setRecordingStatus(t("freeQA.recordingStarted"));
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : "audio/webm";
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-
-      recordedChunksRef.current = [];
-      mediaStreamRef.current = stream;
-      mediaRecorderRef.current = recorder;
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          recordedChunksRef.current.push(event.data);
-        }
-      };
-
-      recorder.onstop = async () => {
-        setRecording(false);
-        setTranscribing(true);
-        setRecordingStatus(t("freeQA.transcribing"));
-
-        const audioBlob = new Blob(recordedChunksRef.current, {
-          type: recorder.mimeType || "audio/webm",
-        });
-
-        if (mediaStreamRef.current) {
-          mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-          mediaStreamRef.current = null;
-        }
-
-        try {
-          const formData = new FormData();
-          formData.append("session_id", stableSessionId);
-          formData.append("selected_language", language);
-          formData.append("audio_file", audioBlob, "voice-input.webm");
-
-          const data = await apiFetch(TRANSCRIBE_URL, {
-            method: "POST",
-            body: formData,
-            fallbackMessage: t("freeQA.transcriptionFailed"),
-          });
-          setRecordingStatus(
-            t("freeQA.transcribedAs", {
-              transcript: data.transcript,
-            })
-          );
-          setInput(data.transcript);
-          await askQuestion(data.transcript, {
-            transcribedLanguage: data.detected_language,
-          });
-        } catch (error) {
-          if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-            setRecordingStatus("");
-            return;
-          }
-          const message =
-            error instanceof Error ? error.message : t("freeQA.transcriptionFailed");
-          setErrorText(message);
-          setRecordingStatus("");
-        } finally {
-          setTranscribing(false);
-        }
-      };
-
-      recorder.start();
-      setRecording(true);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : t("freeQA.voicePermissionFailed");
-      setErrorText(message);
-      setRecording(false);
-      setRecordingStatus("");
-    }
-  }
-
   return (
     <AppLayout
       title="ASK CHATBOT ANY QUESTIONS"
@@ -452,7 +347,7 @@ export default function FreeTextQAPage({
                       type="button"
                       className="rounded-full border border-hospital-300 bg-white px-4 py-2 text-sm font-medium text-hospital-700 transition hover:bg-hospital-50"
                       onClick={() => askQuestion(item.question)}
-                      disabled={historyLoading || loading || streaming || transcribing}
+                      disabled={historyLoading || loading || streaming}
                     >
                       {item.question}
                     </button>
@@ -468,45 +363,18 @@ export default function FreeTextQAPage({
                     onChange={(event) => setInput(event.target.value)}
                     placeholder={t("freeQA.placeholder")}
                     rows={2}
-                    disabled={historyLoading || loading || streaming || transcribing}
+                    disabled={historyLoading || loading || streaming}
                   />
                 </label>
 
-                <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+                <div className="grid gap-3">
                   <button
                     className="btn btn-primary btn-block"
                     type="submit"
-                    disabled={historyLoading || loading || streaming || transcribing}
+                    disabled={historyLoading || loading || streaming}
                   >
                     {loading || streaming ? t("freeQA.streaming") : t("freeQA.ask")}
                   </button>
-                  <button
-                    className="btn btn-secondary gap-2"
-                    type="button"
-                    onClick={recording ? stopRecording : startRecording}
-                    disabled={historyLoading || loading || streaming || transcribing}
-                    aria-label={recording ? t("freeQA.stopRecording") : t("freeQA.recordVoice")}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className="h-5 w-5"
-                    >
-                      <path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 1 1-6 0V6a3 3 0 0 1 3-3Z" />
-                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                      <path d="M12 19v3" />
-                      <path d="M8 22h8" />
-                    </svg>
-                    <span>{recording ? t("freeQA.stopRecording") : t("freeQA.recordVoice")}</span>
-                  </button>
-                  <div className="rounded-xl border border-hospital-200 bg-hospital-50 px-4 py-3 text-sm text-hospital-700">
-                    {transcribing
-                      ? t("freeQA.transcribing")
-                      : recordingStatus || t("freeQA.voiceHint")}
-                  </div>
                 </div>
               </form>
 

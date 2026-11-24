@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../components/AdminLayout";
 import {
+  deleteAdminPatientData,
   downloadAdminReport,
   fetchAdminReportDetail,
   fetchAdminReports,
@@ -190,7 +191,10 @@ export default function AdminPatientsPage({ onAdminLogout }) {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [deletingPatientId, setDeletingPatientId] = useState("");
   const [error, setError] = useState("");
+  const [deletionError, setDeletionError] = useState("");
+  const [deletionSuccess, setDeletionSuccess] = useState("");
   const [detailError, setDetailError] = useState("");
 
   useEffect(() => {
@@ -263,6 +267,47 @@ export default function AdminPatientsPage({ onAdminLogout }) {
     }
   }
 
+  async function handleDeletePatient(patientId) {
+    const normalizedPatientId = String(patientId || "").trim();
+    if (!normalizedPatientId) {
+      setDeletionError("This report does not include a patient ID, so it cannot be deleted here.");
+      return;
+    }
+    const confirmed = window.confirm(
+      `Permanently delete all data for Patient ID ${normalizedPatientId}?\n\n` +
+        "This includes the patient profile, sessions, quiz results, reports, chat history, and generated session audio. This action cannot be undone."
+    );
+    if (!confirmed) return;
+
+    setDeletingPatientId(normalizedPatientId);
+    setDeletionError("");
+    setDeletionSuccess("");
+    try {
+      await deleteAdminPatientData(normalizedPatientId);
+      const belongsToDeletedPatient = (report) =>
+        String(report.patient_code || report.patient_id || "") === normalizedPatientId;
+      setReports((current) => current.filter((report) => !belongsToDeletedPatient(report)));
+      if (expandedReportId && reports.some((report) =>
+        report.report_id === expandedReportId && belongsToDeletedPatient(report)
+      )) {
+        setExpandedReportId("");
+        setReportDetail(null);
+      }
+      setDeletionSuccess(`Patient ${normalizedPatientId} and associated data were deleted.`);
+      try {
+        setReports(await fetchAdminReports());
+      } catch {
+        setDeletionError("The patient was deleted, but the list could not refresh. Reload this page to verify.");
+      }
+    } catch (deleteError) {
+      setDeletionError(
+        deleteError instanceof Error ? deleteError.message : "Could not delete this patient. Please try again."
+      );
+    } finally {
+      setDeletingPatientId("");
+    }
+  }
+
   return (
     <AdminLayout
       title="Patient Reports"
@@ -278,6 +323,8 @@ export default function AdminPatientsPage({ onAdminLogout }) {
 
           {loading ? <p className="mt-4 muted">Loading patient reports...</p> : null}
           {error ? <p className="mt-4 error-text">{error}</p> : null}
+          {deletionError ? <p className="mt-4 error-text" role="alert">{deletionError}</p> : null}
+          {deletionSuccess ? <p className="mt-4 text-sm font-medium text-care-700" role="status">{deletionSuccess}</p> : null}
 
           {!loading && !error ? (
             reportRows.length ? (
@@ -292,7 +339,7 @@ export default function AdminPatientsPage({ onAdminLogout }) {
                       <th className="px-4 py-3 font-semibold">Post-test</th>
                       <th className="px-4 py-3 font-semibold">Improvement</th>
                       <th className="px-4 py-3 font-semibold">Completion</th>
-                      <th className="px-4 py-3 font-semibold">Report</th>
+                      <th className="px-4 py-3 font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-hospital-100 bg-white">
@@ -308,13 +355,25 @@ export default function AdminPatientsPage({ onAdminLogout }) {
                           <td className="px-4 py-3 font-semibold text-care-700">{report.improvement ?? 0}</td>
                           <td className="px-4 py-3 text-hospital-700">{report.completion_status}</td>
                           <td className="px-4 py-3">
-                            <button
-                              type="button"
-                              className="btn btn-secondary !min-h-10 !px-3 !py-2 text-sm"
-                              onClick={() => toggleExpand(report.report_id)}
-                            >
-                              {isOpen ? "Hide Report" : "View Report"}
-                            </button>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-secondary !min-h-10 !px-3 !py-2 text-sm"
+                                onClick={() => toggleExpand(report.report_id)}
+                              >
+                                {isOpen ? "Hide Report" : "View Report"}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn !min-h-10 !border-red-200 !bg-red-50 !px-3 !py-2 text-sm !text-red-700 hover:!bg-red-100"
+                                onClick={() => handleDeletePatient(report.patient_code || report.patient_id)}
+                                disabled={Boolean(deletingPatientId)}
+                              >
+                                {deletingPatientId === String(report.patient_code || report.patient_id || "")
+                                  ? "Deleting..."
+                                  : "Delete Patient"}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );

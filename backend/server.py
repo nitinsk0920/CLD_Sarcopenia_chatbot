@@ -234,6 +234,7 @@ async def chat(
     db: Session = Depends(get_db),
 ) -> ChatResponse:
     from services.report_service import ReportService
+    from services.report_service import acquire_session_activity_lock
 
     request_id = str(uuid4())
     masked_session = _mask_session_id(payload.session_id)
@@ -247,6 +248,7 @@ async def chat(
         payload.selected_language,
     )
     try:
+        acquire_session_activity_lock(db, payload.session_id)
         verified_profile = ReportService(db).get_active_session_profile(
             payload.session_id, admin_id=current_admin.id
         )

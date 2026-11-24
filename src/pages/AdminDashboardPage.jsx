@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
-import { fetchAdminReports } from "../services/reportApi";
+import {
+  ADMIN_REPORTS_CHANGED_EVENT,
+  fetchAdminReports,
+} from "../services/reportApi";
 
 function getAverage(values) {
   if (!values.length) return "0.0";
@@ -38,9 +41,11 @@ export default function AdminDashboardPage({ onAdminLogout }) {
       }
     }
 
+    window.addEventListener(ADMIN_REPORTS_CHANGED_EVENT, loadReports);
     loadReports();
     return () => {
       active = false;
+      window.removeEventListener(ADMIN_REPORTS_CHANGED_EVENT, loadReports);
     };
   }, []);
 
