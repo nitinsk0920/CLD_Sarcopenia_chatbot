@@ -65,6 +65,24 @@ function MediaUnavailable({ title, type }) {
 
 function LearningMediaFrame({ item }) {
   const [hasError, setHasError] = useState(false);
+  const [videoActivated, setVideoActivated] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const videoRef = useRef(null);
+
+  function activateVideo() {
+    const video = videoRef.current;
+    if (!video) return;
+
+    setVideoActivated(true);
+    setVideoReady(false);
+    video.src = item.media_url;
+    video.load();
+    video.play().catch((error) => {
+      if (error?.name !== "NotAllowedError" && error?.name !== "AbortError") {
+        setHasError(true);
+      }
+    });
+  }
 
   if (hasError) {
     return <MediaUnavailable title={item.title} type={item.media_type} />;
@@ -73,29 +91,53 @@ function LearningMediaFrame({ item }) {
   if (item.media_type === "video") {
     return (
       <div className="overflow-hidden rounded-2xl border border-hospital-200 bg-slate-950">
-        <div className="aspect-video w-full">
+        <div className="relative aspect-video w-full">
           <video
+            ref={videoRef}
             controls
             playsInline
-            preload="metadata"
+            preload="none"
             className="h-full w-full bg-black object-contain"
             onError={() => setHasError(true)}
-          >
-            <source src={item.media_url} />
-          </video>
+            onLoadedData={() => setVideoReady(true)}
+            onPlaying={() => setVideoReady(true)}
+          />
+          {!videoActivated ? (
+            <button
+              type="button"
+              className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-sky-100 via-white to-emerald-100 text-hospital-800"
+              onClick={activateVideo}
+              aria-label={`Play ${item.title}`}
+            >
+              <span className="flex h-16 w-16 items-center justify-center rounded-full border border-white bg-white/90 text-2xl text-care-700 shadow-lg">
+                <svg viewBox="0 0 24 24" className="ml-1 h-7 w-7" fill="currentColor" aria-hidden="true">
+                  <path d="M8 5.5v13l10-6.5-10-6.5Z" />
+                </svg>
+              </span>
+              <span className="rounded-full border border-white/80 bg-white/80 px-4 py-2 text-sm font-semibold shadow-sm">
+                Play video
+              </span>
+            </button>
+          ) : null}
+          {videoActivated && !videoReady ? (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/35 text-sm font-medium text-white" role="status">
+              Loading video…
+            </div>
+          ) : null}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-[260px] items-center justify-center overflow-hidden rounded-2xl border border-hospital-200 bg-white p-4 sm:min-h-[320px]">
+    <div className="flex h-[280px] w-full items-center justify-center overflow-hidden rounded-2xl border border-hospital-200 bg-white p-4 sm:h-[360px]">
       <img
         src={item.media_url}
         alt={item.title}
         loading="lazy"
+        decoding="async"
         onError={() => setHasError(true)}
-        className="max-h-[460px] max-w-full rounded-xl object-contain"
+        className="h-full w-full rounded-xl object-contain"
       />
     </div>
   );

@@ -81,8 +81,9 @@ This chatbot pipeline uses nodes for:
 LLM backend:
 
 - Google Gen AI Python SDK
+- `google-genai>=2.25.0` for the current Gemini 3.8 TTS Interactions API
 - model: `gemini-2.5-flash` (default)
-- TTS model: `gemini-2.5-flash-preview-tts`
+- TTS model: `gemini-3.8-flash-lite-tts` (default; configurable with `GEMINI_TTS_SYNTHESIS_MODEL`)
 - PostgreSQL-backed LangGraph checkpointer when `LANGGRAPH_POSTGRES_URL` is set
 
 ### Install backend requirements
@@ -116,7 +117,7 @@ Required / optional environment knobs:
 
 - `GOOGLE_API_KEY` or `GEMINI_API_KEY`
 - `GEMINI_MODEL` (default `gemini-2.5-flash`)
-- `GEMINI_TTS_MODEL` (default `gemini-2.5-flash-preview-tts`)
+- `GEMINI_TTS_SYNTHESIS_MODEL` (default `gemini-3.8-flash-lite-tts`)
 - `LANGGRAPH_POSTGRES_URL` for production persistence
 - `ALLOW_IN_MEMORY_CHECKPOINTER_FALLBACK=false` to fail startup instead of silently losing conversation state when PostgreSQL is unavailable
 - `CHAT_TIMEOUT_SECONDS` (default `60`)

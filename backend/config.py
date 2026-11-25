@@ -48,6 +48,7 @@ class Settings:
     gemini_model_fallback_2: str
     gemini_tts_model_primary: str
     gemini_tts_model_fallback_1: str
+    gemini_tts_synthesis_model: str
     model_max_retry: int
     model_timeout_ms: int
     gemini_model: str
@@ -91,12 +92,17 @@ def get_settings() -> Settings:
         os.getenv("GEMINI_TTS_MODEL_FALLBACK_1", "gemini-2.0-flash-exp").strip()
         or "gemini-2.0-flash-exp"
     )
+    gemini_tts_synthesis_model = (
+        os.getenv("GEMINI_TTS_SYNTHESIS_MODEL", "gemini-3.8-flash-lite-tts").strip()
+        or "gemini-3.8-flash-lite-tts"
+    )
     return Settings(
         gemini_model_primary=gemini_model_primary,
         gemini_model_fallback_1=gemini_model_fallback_1,
         gemini_model_fallback_2=gemini_model_fallback_2,
         gemini_tts_model_primary=gemini_tts_model_primary,
         gemini_tts_model_fallback_1=gemini_tts_model_fallback_1,
+        gemini_tts_synthesis_model=gemini_tts_synthesis_model,
         model_max_retry=int(os.getenv("MODEL_MAX_RETRY", "1")),
         model_timeout_ms=int(os.getenv("MODEL_TIMEOUT_MS", "25000")),
         gemini_model=gemini_model_primary,

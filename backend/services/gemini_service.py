@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-import json
+import base64
 import html
+import json
 import logging
 import os
 import re
-import re
+import tempfile
 import wave
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +48,7 @@ class GeminiService:
         self.settings = settings
         self.loadtest_mock = loadtest_mock
         self._client = None
+        self._tts_client = None
 
     def _ensure_client(self):
         if self.loadtest_mock or loadtest_mock_mode_enabled():
@@ -75,10 +78,40 @@ class GeminiService:
             )
         return self._client
 
+    def _ensure_tts_client(self):
+        if self.loadtest_mock or loadtest_mock_mode_enabled():
+            raise RuntimeError(
+                "External Gemini provider access is blocked while local load-test mocks are enabled."
+            )
+        if genai is None or types is None:
+            raise RuntimeError(
+                "Missing Google Gen AI SDK. Install backend requirements before starting the server."
+            )
+
+        if not self._tts_client:
+            if not self.settings.gemini_api_key and not (
+                os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+            ):
+                raise RuntimeError(
+                    "Gemini API key is not configured. Set GOOGLE_API_KEY or GEMINI_API_KEY."
+                )
+            self._tts_client = genai.Client(
+                api_key=self.settings.gemini_api_key or None,
+                http_options=types.HttpOptions(
+                    api_version="v1beta",
+                    client_args={"trust_env": False},
+                    timeout=max(self.settings.model_timeout_ms, 1),
+                ),
+            )
+        return self._tts_client
+
     def close(self) -> None:
         if self._client is not None:
             self._client.close()
             self._client = None
+        if self._tts_client is not None:
+            self._tts_client.close()
+            self._tts_client = None
 
     def _chat_models(self) -> list[str]:
         configured_fallbacks = [
@@ -184,11 +217,12 @@ class GeminiService:
         mode_label: str,
         operation_label: str,
         request_runner,
+        client_factory=None,
     ):
         if not models:
             raise RuntimeError("No Gemini models are configured.")
 
-        client = self._ensure_client()
+        client = (client_factory or self._ensure_client)()
         last_exc: Exception | None = None
         retries_per_model = self._max_retry_per_model()
 
@@ -475,30 +509,60 @@ class GeminiService:
             return
 
         def _request(client, model_name: str) -> None:
-            response = client.models.generate_content(
+            interaction = client.interactions.create(
                 model=model_name,
-                contents=text,
-                config=types.GenerateContentConfig(
-                    response_modalities=["AUDIO"],
-                    speech_config=types.SpeechConfig(
-                        voice_config=types.VoiceConfig(
-                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                voice_name=self.settings.default_voice_name,
-                            )
-                        )
-                    ),
-                ),
+                input=[{
+                    "type": "user_input",
+                    "content": [{"type": "text", "text": text}],
+                }],
+                response_format={"type": "audio"},
+                generation_config={
+                    "speech_config": [{"voice": self.settings.default_voice_name}],
+                },
             )
 
             try:
-                pcm_data = response.candidates[0].content.parts[0].inline_data.data
+                encoded_audio = interaction.output_audio.data
+                if not encoded_audio:
+                    raise ValueError("empty audio payload")
+                wav_data = base64.b64decode(encoded_audio, validate=True)
             except Exception as exc:
-                raise RuntimeError("Gemini TTS did not return inline audio data.") from exc
+                raise RuntimeError("Gemini TTS did not return valid encoded WAV audio.") from exc
 
-            with wave.open(str(destination), "wb") as wav_file:
-                wav_file.setnchannels(1)
-                wav_file.setsampwidth(2)
-                wav_file.setframerate(24000)
-                wav_file.writeframes(pcm_data)
+            try:
+                with wave.open(BytesIO(wav_data), "rb") as wav_file:
+                    valid_wav = (
+                        wav_data.startswith(b"RIFF")
+                        and wav_data[8:12] == b"WAVE"
+                        and wav_file.getnchannels() == 1
+                        and wav_file.getsampwidth() == 2
+                        and wav_file.getframerate() == 24000
+                        and wav_file.getnframes() > 0
+                    )
+            except (wave.Error, EOFError) as exc:
+                raise RuntimeError("Gemini TTS returned malformed WAV audio.") from exc
+            if not valid_wav:
+                raise RuntimeError(
+                    "Gemini TTS returned WAV audio with an unsupported format or no frames."
+                )
 
-        self._run_tts_stt_with_fallback(f"audio.synthesize[{language_code}]", _request)
+            temp_path = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="wb", dir=destination.parent, suffix=".tmp", delete=False
+                ) as temp_file:
+                    temp_path = Path(temp_file.name)
+                    temp_file.write(wav_data)
+                os.replace(temp_path, destination)
+            except OSError as exc:
+                if temp_path is not None:
+                    temp_path.unlink(missing_ok=True)
+                raise RuntimeError("Could not save generated TTS WAV audio.") from exc
+
+        self._run_with_model_fallback(
+            models=[self.settings.gemini_tts_synthesis_model],
+            mode_label="TTS",
+            operation_label=f"audio.synthesize[{language_code}]",
+            request_runner=_request,
+            client_factory=self._ensure_tts_client,
+        )
