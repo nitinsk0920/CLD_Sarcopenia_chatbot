@@ -23,13 +23,74 @@ const learningMediaBaseUrl = (
   `${supabaseUrl}/storage/v1/object/public/learning-media`
 ).replace(/\/$/, "");
 const topicVideos = {
-  introduction: { path: "Introduction/Intro.mp4", title: "Introduction video" },
-  cld: { path: "CLD/cld_video.mp4", title: "CLD video" },
-  diet: { path: "diet/diet and nutrition.mp4", title: "Diet and nutrition" },
-  exercise: { path: "exercises/exercise and movement.mp4", title: "Exercise and movement" },
-  safety: { path: "Safety and Warnings/safety and warning signs.mp4", title: "Safety and warning signs" },
-  sarcopenia: { path: "sarcopenia/sarcopenia_video.mp4", title: "Sarcopenia video" },
+  introduction: {
+    path: "Introduction/Intro.mp4",
+    title: "Introduction video",
+    audio: {
+      hi: "Introduction/intro_hin.MP3",
+      kn: "Introduction/intro_kn.MP3",
+      mr: "Introduction/intro_mar.MP3",
+    },
+  },
+  cld: {
+    path: "CLD/cld_video.mp4",
+    title: "CLD video",
+    audio: {
+      hi: "CLD/CLD_HIN.MP3",
+      kn: "CLD/CLD_KAN.MP3",
+      mr: "CLD/CLD_MAR.MP3",
+    },
+  },
+  diet: {
+    path: "diet/diet and nutrition.mp4",
+    title: "Diet and nutrition",
+    audio: {
+      hi: "diet/diet_hin.MP3",
+      kn: "diet/diet_kan.MP3",
+      mr: "diet/diet_marati.MP3",
+    },
+  },
+  exercise: {
+    path: "exercises/exercise and movement.mp4",
+    title: "Exercise and movement",
+    audio: {
+      hi: "exercises/excer-hin.MP3",
+      kn: "exercises/excer-kan.MP3",
+      mr: "exercises/excer-ma.MP3",
+    },
+  },
+  safety: {
+    path: "Safety and Warnings/safety and warning signs.mp4",
+    title: "Safety and warning signs",
+    audio: {
+      hi: "Safety and Warnings/safety_hin_audio.MP3",
+      kn: "Safety and Warnings/safety_kan_audio.MP3",
+      mr: "Safety and Warnings/safety_mar_audio.MP3",
+    },
+  },
+  sarcopenia: {
+    path: "sarcopenia/sarcopenia_video.mp4",
+    title: "Sarcopenia video",
+    audio: {
+      hi: "sarcopenia/sarco_Hin.MP3",
+      kn: "sarcopenia/sarcopenia_kan.MP3",
+      mr: "sarcopenia/sarco_mar.MP3",
+    },
+  },
 };
+const videoAudioLanguages = [
+  { code: "en", label: "English (Original)" },
+  { code: "hi", label: "हिन्दी (Hindi)" },
+  { code: "kn", label: "ಕನ್ನಡ (Kannada)" },
+  { code: "mr", label: "मराठी (Marathi)" },
+];
+
+function getVideoAudioUrl(topicId, languageCode) {
+  const path = topicVideos[topicId]?.audio?.[languageCode];
+  if (!path) return "";
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+  return `${learningMediaBaseUrl}/${encodedPath}`;
+}
 
 function mediaForCourseTopic(items, topicId) {
   const images = (items || []).filter((item) => item.media_type !== "video");
@@ -67,7 +128,168 @@ function LearningMediaFrame({ item }) {
   const [hasError, setHasError] = useState(false);
   const [videoActivated, setVideoActivated] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [selectedAudioLanguage, setSelectedAudioLanguage] = useState("en");
+  const [audioLoading, setAudioLoading] = useState(false);
+  const [audioError, setAudioError] = useState(false);
   const videoRef = useRef(null);
+  const audioRef = useRef(null);
+  const selectedAudioLanguageRef = useRef("en");
+  const audioAttemptRef = useRef(0);
+
+  useEffect(() => () => {
+    audioAttemptRef.current += 1;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
+      audioRef.current.removeAttribute("src");
+      audioRef.current.load();
+      audioRef.current = null;
+    }
+  }, []);
+
+  function pauseExternalAudio() {
+    audioAttemptRef.current += 1;
+    if (!audioRef.current) return;
+    audioRef.current.pause();
+  }
+
+  async function playExternalAudio() {
+    const video = videoRef.current;
+    const languageCode = selectedAudioLanguageRef.current;
+    if (!video || languageCode === "en") return;
+
+    const sourceUrl = getVideoAudioUrl(item.topic, languageCode);
+    if (!sourceUrl) {
+      video.muted = true;
+      setAudioError(true);
+      setAudioLoading(false);
+      return;
+    }
+
+    const attempt = audioAttemptRef.current + 1;
+    audioAttemptRef.current = attempt;
+    const audio = audioRef.current || new Audio();
+    audioRef.current = audio;
+    audio.preload = "none";
+    audio.pause();
+    audio.onended = null;
+    audio.onerror = null;
+
+    const syncToVideo = () => {
+      if (
+        audioAttemptRef.current !== attempt ||
+        selectedAudioLanguageRef.current !== languageCode
+      ) return;
+      try {
+        audio.currentTime = Math.min(video.currentTime, Number.isFinite(audio.duration) ? audio.duration : video.currentTime);
+      } catch {
+        // The media element will apply the pending seek when its metadata is ready.
+      }
+    };
+
+    audio.onloadedmetadata = syncToVideo;
+    audio.onerror = () => {
+      if (audioAttemptRef.current !== attempt) return;
+      audio.pause();
+      video.muted = true;
+      setAudioLoading(false);
+      setAudioError(true);
+    };
+    audio.onended = () => {
+      if (audioAttemptRef.current !== attempt) return;
+      setAudioLoading(false);
+    };
+    if (audio.src !== sourceUrl) {
+      audio.src = sourceUrl;
+      audio.load();
+    }
+    audio.playbackRate = video.playbackRate;
+    syncToVideo();
+    setAudioError(false);
+    setAudioLoading(true);
+
+    try {
+      await audio.play();
+      if (audioAttemptRef.current !== attempt || video.paused) {
+        audio.pause();
+        return;
+      }
+      setAudioLoading(false);
+    } catch {
+      if (audioAttemptRef.current !== attempt) return;
+      audio.pause();
+      video.muted = true;
+      setAudioLoading(false);
+      setAudioError(true);
+    }
+  }
+
+  function selectAudioLanguage(languageCode) {
+    selectedAudioLanguageRef.current = languageCode;
+    setSelectedAudioLanguage(languageCode);
+    setAudioError(false);
+    setAudioLoading(false);
+    pauseExternalAudio();
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (languageCode === "en") {
+      video.muted = false;
+      if (audioRef.current) {
+        audioRef.current.onloadedmetadata = null;
+        audioRef.current.onended = null;
+        audioRef.current.onerror = null;
+        audioRef.current.removeAttribute("src");
+        audioRef.current.load();
+      }
+      return;
+    }
+
+    video.muted = true;
+    if (!getVideoAudioUrl(item.topic, languageCode)) {
+      setAudioError(true);
+      return;
+    }
+    if (!video.paused) void playExternalAudio();
+  }
+
+  function handleVideoPause() {
+    if (selectedAudioLanguageRef.current === "en") return;
+    pauseExternalAudio();
+    setAudioLoading(false);
+  }
+
+  function handleVideoSeek() {
+    if (selectedAudioLanguageRef.current === "en") return;
+    pauseExternalAudio();
+  }
+
+  function handleVideoSeeked() {
+    if (selectedAudioLanguageRef.current === "en") return;
+    if (videoRef.current && !videoRef.current.paused) void playExternalAudio();
+  }
+
+  function handleVideoTimeUpdate() {
+    const video = videoRef.current;
+    const audio = audioRef.current;
+    if (
+      selectedAudioLanguageRef.current === "en" ||
+      !video ||
+      !audio ||
+      audio.paused ||
+      audio.readyState < 1
+    ) return;
+
+    if (Math.abs(audio.currentTime - video.currentTime) > 0.35) {
+      try {
+        audio.currentTime = Math.min(video.currentTime, Number.isFinite(audio.duration) ? audio.duration : video.currentTime);
+      } catch {
+        // Ignore transient seek errors; the next video time update will resync.
+      }
+    }
+  }
 
   function activateVideo() {
     const video = videoRef.current;
@@ -97,10 +319,30 @@ function LearningMediaFrame({ item }) {
             controls
             playsInline
             preload="none"
+            muted={selectedAudioLanguage !== "en"}
             className="h-full w-full bg-black object-contain"
-            onError={() => setHasError(true)}
+            onError={() => {
+              pauseExternalAudio();
+              setHasError(true);
+            }}
             onLoadedData={() => setVideoReady(true)}
+            onPlay={() => {
+              if (selectedAudioLanguageRef.current !== "en") void playExternalAudio();
+            }}
             onPlaying={() => setVideoReady(true)}
+            onPause={handleVideoPause}
+            onSeeking={handleVideoSeek}
+            onSeeked={handleVideoSeeked}
+            onTimeUpdate={handleVideoTimeUpdate}
+            onRateChange={() => {
+              if (audioRef.current && videoRef.current) {
+                audioRef.current.playbackRate = videoRef.current.playbackRate;
+              }
+            }}
+            onEnded={() => {
+              pauseExternalAudio();
+              setAudioLoading(false);
+            }}
           />
           {!videoActivated ? (
             <button
@@ -123,6 +365,31 @@ function LearningMediaFrame({ item }) {
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/35 text-sm font-medium text-white" role="status">
               Loading video…
             </div>
+          ) : null}
+        </div>
+        <div className="grid gap-2 bg-white p-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-4 sm:px-4">
+          <label htmlFor={`video-audio-${item.id}`} className="text-sm font-semibold text-hospital-700">
+            Audio language
+          </label>
+          <select
+            id={`video-audio-${item.id}`}
+            value={selectedAudioLanguage}
+            onChange={(event) => selectAudioLanguage(event.target.value)}
+            className="w-full min-w-0 rounded-xl border border-hospital-300 bg-white px-3 py-2 text-sm text-hospital-800 outline-none focus:border-care-600 focus:ring-2 focus:ring-care-200 sm:max-w-xs"
+          >
+            {videoAudioLanguages.map(({ code, label }) => (
+              <option key={code} value={code}>{label}</option>
+            ))}
+          </select>
+          {audioLoading ? (
+            <p className="m-0 text-sm text-hospital-600 sm:col-span-2" role="status" aria-live="polite">
+              Loading {videoAudioLanguages.find(({ code }) => code === selectedAudioLanguage)?.label} audio…
+            </p>
+          ) : null}
+          {audioError ? (
+            <p className="m-0 text-sm font-medium text-red-700 sm:col-span-2" role="alert">
+              Could not load the selected audio. Choose English (Original) to restore the video’s original sound.
+            </p>
           ) : null}
         </div>
       </div>
