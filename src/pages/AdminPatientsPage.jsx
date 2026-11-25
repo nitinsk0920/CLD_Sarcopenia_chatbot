@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AdminLayout from "../components/AdminLayout";
 import {
   deleteAdminPatientData,
@@ -196,6 +196,7 @@ export default function AdminPatientsPage({ onAdminLogout }) {
   const [deletionError, setDeletionError] = useState("");
   const [deletionSuccess, setDeletionSuccess] = useState("");
   const [detailError, setDetailError] = useState("");
+  const reportSectionRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -228,6 +229,27 @@ export default function AdminPatientsPage({ onAdminLogout }) {
   }, []);
 
   const reportRows = useMemo(() => reports, [reports]);
+
+  useEffect(() => {
+    const reportSection = reportSectionRef.current;
+    if (
+      detailLoading ||
+      !reportDetail ||
+      reportDetail.report_id !== expandedReportId ||
+      !reportSection
+    ) return;
+
+    const pinnedHeaderBottom = Array.from(document.querySelectorAll("header, nav"))
+      .filter((element) => {
+        const position = window.getComputedStyle(element).position;
+        const bounds = element.getBoundingClientRect();
+        return (position === "fixed" || position === "sticky") && bounds.top <= 0 && bounds.bottom > 0;
+      })
+      .reduce((bottom, element) => Math.max(bottom, element.getBoundingClientRect().bottom), 0);
+
+    reportSection.style.scrollMarginTop = `${pinnedHeaderBottom + 16}px`;
+    reportSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [detailLoading, expandedReportId, reportDetail]);
 
   async function toggleExpand(reportId) {
     if (expandedReportId === reportId) {
@@ -390,7 +412,7 @@ export default function AdminPatientsPage({ onAdminLogout }) {
         </section>
 
         {expandedReportId ? (
-          <section className="question-card">
+          <section ref={reportSectionRef} className="question-card">
             {detailLoading ? <p className="muted">Loading full report detail...</p> : null}
             {detailError ? <p className="error-text">{detailError}</p> : null}
             {!detailLoading && !detailError && reportDetail ? (
