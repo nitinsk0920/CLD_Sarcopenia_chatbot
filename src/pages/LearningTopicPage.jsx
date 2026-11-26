@@ -98,6 +98,7 @@ function mediaForCourseTopic(items, topicId) {
   if (!video) return images;
 
   const encodedPath = video.path.split("/").map(encodeURIComponent).join("/");
+  const poster = images.find((item) => item.media_url)?.media_url;
   return [
     ...images,
     {
@@ -106,6 +107,7 @@ function mediaForCourseTopic(items, topicId) {
       media_type: "video",
       title: video.title,
       media_url: `${learningMediaBaseUrl}/${encodedPath}`,
+      poster_url: poster || "",
       display_order: 999,
     },
   ];
@@ -300,13 +302,16 @@ function LearningMediaFrame({ item }) {
     video.src = item.media_url;
     video.load();
     video.play().catch((error) => {
-      if (error?.name !== "NotAllowedError" && error?.name !== "AbortError") {
-        setHasError(true);
+      if (error?.name === "NotAllowedError" || error?.name === "AbortError") {
+        setVideoActivated(false);
+        setVideoReady(false);
+        return;
       }
+      setHasError(true);
     });
   }
 
-  if (hasError) {
+  if (hasError && item.media_type !== "video") {
     return <MediaUnavailable title={item.title} type={item.media_type} />;
   }
 
@@ -319,13 +324,17 @@ function LearningMediaFrame({ item }) {
             controls
             playsInline
             preload="none"
+            poster={item.poster_url || undefined}
             muted={selectedAudioLanguage !== "en"}
             className="h-full w-full bg-black object-contain"
             onError={() => {
               pauseExternalAudio();
               setHasError(true);
             }}
-            onLoadedData={() => setVideoReady(true)}
+            onLoadedData={() => {
+              setHasError(false);
+              setVideoReady(true);
+            }}
             onPlay={() => {
               if (selectedAudioLanguageRef.current !== "en") void playExternalAudio();
             }}
@@ -344,7 +353,7 @@ function LearningMediaFrame({ item }) {
               setAudioLoading(false);
             }}
           />
-          {!videoActivated ? (
+          {!videoActivated && !hasError ? (
             <button
               type="button"
               className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-sky-100 via-white to-emerald-100 text-hospital-800"
@@ -361,7 +370,23 @@ function LearningMediaFrame({ item }) {
               </span>
             </button>
           ) : null}
-          {videoActivated && !videoReady ? (
+          {hasError ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950/90 px-5 text-center text-white" role="alert">
+              <p className="m-0 text-sm font-medium">This video could not be loaded. Check your connection and try again.</p>
+              <button
+                type="button"
+                className="rounded-full border border-white/70 px-4 py-2 text-sm font-semibold hover:bg-white/10"
+                onClick={() => {
+                  setHasError(false);
+                  setVideoActivated(false);
+                  setVideoReady(false);
+                }}
+              >
+                Try again
+              </button>
+            </div>
+          ) : null}
+          {videoActivated && !videoReady && !hasError ? (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/35 text-sm font-medium text-white" role="status">
               Loading video…
             </div>
@@ -381,6 +406,9 @@ function LearningMediaFrame({ item }) {
               <option key={code} value={code}>{label}</option>
             ))}
           </select>
+          <p className="m-0 text-sm text-hospital-600 sm:col-span-2">
+            Selected: {videoAudioLanguages.find(({ code }) => code === selectedAudioLanguage)?.label}
+          </p>
           {audioLoading ? (
             <p className="m-0 text-sm text-hospital-600 sm:col-span-2" role="status" aria-live="polite">
               Loading {videoAudioLanguages.find(({ code }) => code === selectedAudioLanguage)?.label} audio…
@@ -476,6 +504,10 @@ export default function LearningTopicPage({ onExitFlow }) {
     error: "",
     items: [],
   });
+  const mediaItems = useMemo(
+    () => mediaForCourseTopic(mediaState.items, topicId),
+    [mediaState.items, topicId]
+  );
   const [audioState, setAudioState] = useState({
     loadingKey: "",
     playingKey: "",
@@ -501,7 +533,7 @@ export default function LearningTopicPage({ onExitFlow }) {
         setMediaState({
           loading: false,
           error: "",
-          items: mediaForCourseTopic(response?.items, topicId),
+          items: response?.items || [],
         });
       } catch (error) {
         if (!isActive) return;
@@ -535,7 +567,7 @@ export default function LearningTopicPage({ onExitFlow }) {
 
   useEffect(() => {
     animateLearningMediaCards(contentRef.current);
-  }, [topicId, mediaState.items.length]);
+  }, [topicId, mediaItems.length]);
 
   function stopCurrentAudio() {
     if (activeAudioRef.current) {
@@ -774,11 +806,11 @@ export default function LearningTopicPage({ onExitFlow }) {
                 Learning media for this topic
               </h2>
             </div>
-            <span className="topic-chip">{mediaState.items.length} items</span>
+            <span className="topic-chip">{mediaItems.length} items</span>
           </div>
 
           {mediaState.loading ? (
-            <p className="mt-4 text-sm text-hospital-600">Loading topic media...</p>
+            <p className="mt-4 text-sm text-hospital-600">Loading topic images…</p>
           ) : null}
 
           {mediaState.error ? (
@@ -787,14 +819,14 @@ export default function LearningTopicPage({ onExitFlow }) {
             </p>
           ) : null}
 
-          {!mediaState.loading && !mediaState.error && !mediaState.items.length ? (
+          {!mediaState.loading && !mediaState.error && !mediaItems.length ? (
             <div className="mt-4 rounded-2xl border border-dashed border-hospital-300 bg-hospital-50 p-5 text-sm leading-relaxed text-hospital-700">
               No active media was found for this topic yet. The text lesson is still available.
             </div>
           ) : null}
 
           <div className="mt-5 grid gap-4">
-            {mediaState.items.map((item) => (
+            {mediaItems.map((item) => (
               <article
                 key={item.id}
                 className="overflow-hidden rounded-3xl border border-hospital-200 bg-hospital-50"
@@ -815,6 +847,12 @@ export default function LearningTopicPage({ onExitFlow }) {
             ))}
           </div>
         </section>
+
+        <div className="flex justify-center pb-2">
+          <Link to="/free-qa" className="btn btn-primary w-full sm:w-auto">
+            Q/A with chatbot
+          </Link>
+        </div>
       </div>
     </AppLayout>
   );
