@@ -1034,10 +1034,10 @@ def test_typed_and_voice_transcribed_education_share_the_same_safe_pipeline():
 
     class Gemini:
         def __init__(self):
-            self.calls = 0
+            self.calls = []
 
-        def generate_answer(self, **_kwargs):
-            self.calls += 1
+        def generate_answer(self, *, language_code, **_kwargs):
+            self.calls.append(language_code)
             return answer
 
     rag, gemini = Rag(), Gemini()
@@ -1050,9 +1050,11 @@ def test_typed_and_voice_transcribed_education_share_the_same_safe_pipeline():
         session_id="voice-education", user_question=question,
         selected_language="hi", transcribed_language="en",
     )
-    assert typed["answer"] == voice["answer"] == answer
-    assert typed["response_language"] == voice["response_language"] == "en"
-    assert rag.calls == gemini.calls == 2
+    assert typed["answer"] == answer
+    assert typed["response_language"] == "en"
+    assert voice["response_language"] == "hi"
+    assert gemini.calls == ["en", "hi"]
+    assert rag.calls == len(gemini.calls) == 2
 
 
 def test_retrieved_instructions_are_labeled_as_untrusted_reference_content():

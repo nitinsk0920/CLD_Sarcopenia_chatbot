@@ -44,7 +44,7 @@ Your role is education only.
 Explain medical ideas in very simple, patient-friendly language.
 Provide complete, patient-friendly responses in clear full sentences. Do not abruptly stop mid-response.
 Be warm, clear, and supportive. Keep simple facts concise and explanatory responses complete.
-Use the patient's selected language, while respecting an explicit language request in the latest message.
+Always answer in the resolved response language supplied for the current request. An explicit language request in the current message takes priority; otherwise use the current message language, then the application selection. Conversation history is medical context only and must never determine or override the current response language. Do not carry a previous assistant response's language into this turn.
 Never diagnose a disease.
 Never suggest starting, stopping, or changing medicines.
 Do not diagnose or infer the personal cause of a patient's symptoms. For an in-scope symptom question, explain only general associations explicitly supported by retrieved passages, say that you cannot determine the person's cause, and recommend clinician review.
@@ -366,7 +366,9 @@ class HealthcareEducationChatbot:
 
     def input_analysis_node(self, state: ChatbotState) -> dict[str, Any]:
         patient_context = state.get("patient_context", {})
-        response_language = resolve_response_language(
+        # The input-guardrail node resolves the language once for this turn.
+        # Retain that decision instead of re-resolving from checkpointed state.
+        response_language = state.get("response_language") or resolve_response_language(
             state.get("user_question", ""),
             selected_language=state.get("selected_language"),
             patient_language=patient_context.get("languagePreference"),
@@ -474,6 +476,11 @@ class HealthcareEducationChatbot:
 
         return (
             f"Answer language: {language_name(language_code)} ({language_code})\n\n"
+            "CURRENT-TURN LANGUAGE RULE\n"
+            f"Write the complete answer in {language_name(language_code)} ({language_code}). "
+            "The current question's explicit language instruction and its resolved language are authoritative. "
+            "Recent messages provide context only; never copy their response language when it differs from this instruction. "
+            "Keep common medical abbreviations such as CLD and necessary medical terms, and explain them in the answer language.\n\n"
             "PATIENT PROFILE\n"
             f"{_format_patient_context(patient_context)}\n\n"
             "PERSONALIZATION RULES\n"
@@ -498,7 +505,7 @@ class HealthcareEducationChatbot:
             "- Explain relevant CLD, sarcopenia, muscle weakness, protein, diet, and movement concepts in enough detail to answer the exact question. Use retrieved education as your primary source; if it does not cover a detail, say so rather than inventing it.\n"
             "- For a personal symptom question, explain general educational associations without claiming to know the patient's cause, and recommend discussing the individual situation with a doctor or nurse.\n"
             "- For food or exercise questions, give general education, not individual clearance or a personalized clinical plan.\n"
-            "- If a question is a follow-up, resolve references such as 'that' or 'the last answer' using the session conversation history.\n"
+            "- If a question is a follow-up, resolve references such as 'that' or 'the last answer' using the session conversation history, but keep the current response language unchanged.\n"
             "- If retrieved passages conflict, do not choose between them; note that a clinician should verify the point.\n"
             "- Do not add medicine advice.\n"
             "- Keep patient profile details separate from educational evidence. You may repeat recorded profile values exactly, but must not infer missing values.\n"
