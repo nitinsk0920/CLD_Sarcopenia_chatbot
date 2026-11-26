@@ -86,6 +86,11 @@ class GeminiCompletionTests(unittest.TestCase):
         self.assertTrue(GeminiService._looks_incomplete("For example, protein foods include:"))
         self.assertFalse(GeminiService._looks_incomplete("Gentle movement can help maintain strength."))
 
+    def test_hindi_sentence_ending_with_danda_is_complete(self):
+        self.assertFalse(
+            GeminiService._looks_incomplete("दाल और अंडे प्रोटीन के स्रोत हैं।")
+        )
+
     def test_detects_token_limit_finish_reason(self):
         response = SimpleNamespace(candidates=[SimpleNamespace(finish_reason="MAX_TOKENS")])
         self.assertTrue(GeminiService._response_was_token_truncated(response))

@@ -315,7 +315,7 @@ class GeminiService:
             return True
         if cleaned.endswith("...") or cleaned.endswith("\u2026"):
             return True
-        if cleaned[-1:] not in {".", "!", "?", '"', "'", ")", "]", "}"}:
+        if cleaned[-1:] not in {".", "!", "?", "।", '"', "'", ")", "]", "}"}:
             return True
         if re.search(r"(?:\*\s*)?(?:and|or|but|because|such as|including|for example|sometimes|with|to|the|a|an)\s*$", cleaned, re.IGNORECASE):
             return True
