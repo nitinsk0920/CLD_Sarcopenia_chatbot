@@ -224,6 +224,7 @@ const en = {
       hideLearnMore: "Hide Learn More",
       playAudio: "Play Audio",
       playingAudio: "Playing...",
+      stopAudio: "Stop Audio",
       loadingAudio: "Loading audio...",
       audioUnavailable: "Audio unavailable",
       reminder:

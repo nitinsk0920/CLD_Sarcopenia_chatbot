@@ -5,6 +5,7 @@ export default function ChatbotAnswerCard({
   text,
   topics = [],
   onPlayAudio,
+  onStopAudio,
   isPlayingAudio,
   showMedia = true,
 }) {
@@ -18,14 +19,24 @@ export default function ChatbotAnswerCard({
     <article className="bubble bubble-bot bubble-rich" data-chat-message>
       <p className="bubble-text">{text}</p>
       <footer className="answer-actions" aria-label="Answer controls">
-        <button
-          type="button"
-          className="btn btn-secondary btn-audio"
-          onClick={onPlayAudio}
-          aria-label={isPlayingAudio ? t("course.module.playingAudio") : t("course.module.playAudio")}
-        >
-          {isPlayingAudio ? t("course.module.playingAudio") : t("course.module.playAudio")}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="btn btn-secondary btn-audio"
+            onClick={onPlayAudio}
+            aria-label={isPlayingAudio ? t("course.module.playingAudio") : t("course.module.playAudio")}
+          >
+            {isPlayingAudio ? t("course.module.playingAudio") : t("course.module.playAudio")}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-audio"
+            onClick={onStopAudio}
+            aria-label={t("course.module.stopAudio")}
+          >
+            {t("course.module.stopAudio")}
+          </button>
+        </div>
         {topicLabel ? <span className="topic-chip">{topicLabel}</span> : null}
       </footer>
       {imageUrl ? (

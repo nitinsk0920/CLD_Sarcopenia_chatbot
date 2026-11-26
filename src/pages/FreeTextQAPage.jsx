@@ -37,6 +37,8 @@ export default function FreeTextQAPage({
   const [errorText, setErrorText] = useState("");
   const [playingMessageId, setPlayingMessageId] = useState("");
   const audioElementRef = useRef(null);
+  const audioAttemptRef = useRef(0);
+  const audioRequestControllerRef = useRef(null);
   const audioCacheRef = useRef(new Map());
   const chatScrollRef = useRef(null);
   const requestInFlightRef = useRef(false);
@@ -105,8 +107,15 @@ export default function FreeTextQAPage({
 
   useEffect(() => {
     return () => {
+      audioAttemptRef.current += 1;
+      audioRequestControllerRef.current?.abort();
       if (audioElementRef.current) {
         audioElementRef.current.pause();
+        try {
+          audioElementRef.current.currentTime = 0;
+        } catch {
+          // Ignore resets for audio that has not become seekable yet.
+        }
       }
       audioCacheRef.current.forEach((url) => {
         if (typeof url === "string" && url.startsWith("blob:")) {
@@ -238,10 +247,26 @@ export default function FreeTextQAPage({
     if (!message?.text) return;
 
     setErrorText("");
+    audioAttemptRef.current += 1;
+    const attempt = audioAttemptRef.current;
+    audioRequestControllerRef.current?.abort();
+    const controller = new AbortController();
+    audioRequestControllerRef.current = controller;
     if (audioElementRef.current) {
       audioElementRef.current.pause();
-      audioElementRef.current.currentTime = 0;
+      try {
+        audioElementRef.current.currentTime = 0;
+      } catch {
+        // Ignore resets for audio that has not become seekable yet.
+      }
+      audioElementRef.current.onended = null;
+      audioElementRef.current.onerror = null;
+      audioElementRef.current = null;
     }
+    setPlayingMessageId("");
+
+    const isCurrentAttempt = () =>
+      audioAttemptRef.current === attempt && !controller.signal.aborted;
 
     try {
       let audioUrl = audioCacheRef.current.get(message.answerId);
@@ -254,30 +279,51 @@ export default function FreeTextQAPage({
             text: message.text,
             language: message.responseLanguage || language,
           },
+          signal: controller.signal,
           fallbackMessage: t("freeQA.audioFailed"),
         });
+        if (!isCurrentAttempt()) return;
         const protectedAudioUrl = data.audio_url.startsWith("http")
           ? data.audio_url
           : `${API_BASE_URL}${data.audio_url}`;
         const audioBlob = await apiFetch(protectedAudioUrl, {
           method: "GET",
           responseType: "blob",
+          signal: controller.signal,
           fallbackMessage: t("freeQA.audioFailed"),
         });
+        if (!isCurrentAttempt()) return;
         audioUrl = URL.createObjectURL(audioBlob);
         audioCacheRef.current.set(message.answerId, audioUrl);
       }
 
+      if (!isCurrentAttempt()) return;
       const audio = new Audio(audioUrl);
       audioElementRef.current = audio;
-      setPlayingMessageId(message.id);
-      audio.onended = () => setPlayingMessageId("");
+      audio.onended = () => {
+        if (audioAttemptRef.current !== attempt || audioElementRef.current !== audio) return;
+        audioElementRef.current = null;
+        setPlayingMessageId("");
+      };
       audio.onerror = () => {
+        if (audioAttemptRef.current !== attempt || audioElementRef.current !== audio) return;
+        audioElementRef.current = null;
         setPlayingMessageId("");
         setErrorText(t("freeQA.audioFailed"));
       };
+      setPlayingMessageId(message.id);
       await audio.play();
+      if (!isCurrentAttempt()) {
+        audio.pause();
+        try {
+          audio.currentTime = 0;
+        } catch {
+          // Ignore resets for audio that has not become seekable yet.
+        }
+        return;
+      }
     } catch (error) {
+      if (!isCurrentAttempt()) return;
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
         setPlayingMessageId("");
         return;
@@ -286,7 +332,29 @@ export default function FreeTextQAPage({
         error instanceof Error ? error.message : t("freeQA.audioFailed");
       setPlayingMessageId("");
       setErrorText(messageText);
+    } finally {
+      if (audioRequestControllerRef.current === controller) {
+        audioRequestControllerRef.current = null;
+      }
     }
+  }
+
+  function handleStopAudio() {
+    audioAttemptRef.current += 1;
+    audioRequestControllerRef.current?.abort();
+    audioRequestControllerRef.current = null;
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      try {
+        audioElementRef.current.currentTime = 0;
+      } catch {
+        // Ignore resets for audio that has not become seekable yet.
+      }
+      audioElementRef.current.onended = null;
+      audioElementRef.current.onerror = null;
+      audioElementRef.current = null;
+    }
+    setPlayingMessageId("");
   }
 
   return (
@@ -319,6 +387,7 @@ export default function FreeTextQAPage({
                     text={message.text}
                     topics={message.topics}
                     onPlayAudio={() => handlePlayAudio(message)}
+                    onStopAudio={handleStopAudio}
                     isPlayingAudio={playingMessageId === message.id}
                     showMedia={false}
                   />
